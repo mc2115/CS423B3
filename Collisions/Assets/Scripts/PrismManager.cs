@@ -59,7 +59,7 @@ public class PrismManager : MonoBehaviour
 
         StartCoroutine(Run());
     }
-    
+
     void Update()
     {
         #region Visualization
@@ -107,7 +107,7 @@ public class PrismManager : MonoBehaviour
 
     #region Incomplete Functions
 
-    private IEnumerable<PrismCollision> PotentialCollisions()
+    private IEnumerable<PrismCollision> PotentialCollisions2()
     {
         for (int i = 0; i < prisms.Count; i++) {
             for (int j = i + 1; j < prisms.Count; j++) {
@@ -121,22 +121,158 @@ public class PrismManager : MonoBehaviour
 
         yield break;
     }
+    private IEnumerable<PrismCollision> PotentialCollisions()
+    {
+        ArrayList use=new ArrayList();
+        for (int i = 0; i < prisms.Count; i++) {
+            use.Add(prisms[i]);
+        }
+        sort(use,0,use.Count);
+        sweep(use);
+        yield break;
+    }
+    public static void sweep(ArrayList p){ //CURRENTLY ONLY IN ONE DIMENSION, BUT FROM WHAT I FOUND 2D IMPLEMENTATIONS JUST DO A 1D SWEEP OVER THE AXIS WITH THE AXIS W THE MOST VARIANCE
+        var activeList = new ArrayList();
+
+        int c = 0; //c is the index of the prism that we are checking collisions for
+        int[] temp=minMaxXY(p[c]);
+        int cminX=temp[0];
+        int cminY=temp[1];
+        int cmaxX=temp[2];
+        int cmaxY=temp[3];
+        for(int i = 0; i < p.Count; i++){
+            Prism pris=p[i];
+            int[] vals=minMaxXY(pris);
+            int minX=vals[0];
+            int minY=vals[1];
+            int maxX=vals[2];
+            int maxY=vals[3];
+            if(i == 0){  // base case, put the first item in the active list
+                activeList.Add(pris);
+            }
+            else if(minX <= cmaxX){  // if selected prism has potential collision, add to active list
+                activeList.Add(p[i]);
+            }
+            else if(minX> cmaxX){ // if selected prism is not a potential collision, check for collisions for all prisms in active list
+                checkCollisions(activeList);
+                activeList.Add(p[i]);
+                for(int j = c ; j < i; j++){    // iterate and delete all items no longer a potential collision with selected prism
+                    if(minX> minMaxXY(p[j])[2]){
+                        activeList.Remove(p[j]);
+                    }
+                    c = j;
+                    temp=minMaxXY(p[c]);
+                    cminX=temp[0];
+                    cminY=temp[1];
+                    cmaxX=temp[2];
+                    cmaxY=temp[3];
+                }
+            }
+
+        }
+        checkCollisions(activeList);
+    }
+    private int[] minMaxXY(Prism p){
+      int minX=Int32.MaxValue;
+      int minY=Int32.MaxValue;
+      int maxX=Int32.MinValue;
+      int maxY=Int32.MinValue;
+      for (int i=0; j<pris.points.length(); i++){
+        Vector3 use=pris.points[i];
+        valX=use.x;
+        valY=use.z;
+        if (valX<minX) minX=valX;
+        if (valY<minY) minY=valY;
+        if (valX>maxX) maxX=valX;
+        if (valX<maxY) maxY=valY;
+      }
+      return [minX,minY,maxX,maxY];
+    }
+    public void merge(ArrayList p, int l, int m, int r){
+        int n1 = m - l + 1;
+        int n2 = r - m;
+        // Create temp arrays
+        Prism[] L = new Prism[n1];
+        Prism[] R = new Prism[n2];
+        int i, j;
+
+        // Copy data to temp arrays
+        for (i = 0; i < n1; ++i)
+            L[i] = (Prism) p[l + i];
+        for (j = 0; j < n2; ++j)
+            R[j] = (Prism)p[m + 1 + j];
+
+        // Merge the temp arrays
+
+        // Initial indexes of first
+        // and second subarrays
+        i = 0;
+        j = 0;
+
+        // Initial index of merged
+        // subarray array
+        int k = l;
+        while (i < n1 && j < n2) {
+            if (((Prism)L[i]).minX <= ((Prism)R[j]).minX) {
+                p[k] = L[i];
+                i++;
+            }
+            else {
+                p[k] = R[j];
+                j++;
+            }
+            k++;
+        }
+
+        // Copy remaining elements
+        // of L[] if any
+        while (i < n1) {
+            p[k] = L[i];
+            i++;
+            k++;
+        }
+
+        // Copy remaining elements
+        // of R[] if any
+        while (j < n2) {
+            p[k] = R[j];
+            j++;
+            k++;
+        }
+    }
+
+    public void sort(ArrayList p, int l, int r){
+        if (l < r) {
+            // Find the middle
+            // point
+            int m = l+ (r-l)/2;
+
+            // Sort first and
+            // second halves
+            sort(p, l, m);
+            sort(p, m + 1, r);
+
+            // Merge the sorted halves
+            merge(p, l, m, r);
+        }
+    }
+
 
     private bool CheckCollision(PrismCollision collision)
     {
         var prismA = collision.a;
         var prismB = collision.b;
 
-        
+
         collision.penetrationDepthVectorAB = Vector3.zero;
 
         return true;
     }
-    
+
     #endregion
 
     #region Private Functions
-    
+
     private void ResolveCollision(PrismCollision collision)
     {
         var prismObjA = collision.a.prismObject;
@@ -158,7 +294,7 @@ public class PrismManager : MonoBehaviour
 
         Debug.DrawLine(prismObjA.transform.position, prismObjA.transform.position + collision.penetrationDepthVectorAB, Color.cyan, UPDATE_RATE);
     }
-    
+
     #endregion
 
     #region Visualization Functions
@@ -166,7 +302,7 @@ public class PrismManager : MonoBehaviour
     private void DrawPrismRegion()
     {
         var points = new Vector3[] { new Vector3(1, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1), new Vector3(-1, 0, 1) }.Select(p => p * prismRegionRadiusXZ).ToArray();
-        
+
         var yMin = -prismRegionRadiusY;
         var yMax = prismRegionRadiusY;
 
@@ -208,6 +344,8 @@ public class PrismManager : MonoBehaviour
             }
         }
     }
+
+
 
     #endregion
 
