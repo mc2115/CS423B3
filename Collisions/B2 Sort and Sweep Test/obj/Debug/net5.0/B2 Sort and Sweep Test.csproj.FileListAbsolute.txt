@@ -1,0 +1,16 @@
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.csproj.AssemblyReference.cache
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.AssemblyInfoInputs.cache
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.AssemblyInfo.cs
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.csproj.CoreCompileInputs.cache
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.exe
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.deps.json
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.runtimeconfig.json
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.runtimeconfig.dev.json
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.dll
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\ref\B2 Sort and Sweep Test.dll
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\bin\Debug\net5.0\B2 Sort and Sweep Test.pdb
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.dll
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\ref\B2 Sort and Sweep Test.dll
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.pdb
+C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\obj\Debug\net5.0\B2 Sort and Sweep Test.genruntimeconfig.cache
