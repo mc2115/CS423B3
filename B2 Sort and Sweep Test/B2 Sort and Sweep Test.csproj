@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -7,3 +8,14 @@
   </PropertyGroup>
 
 </Project>
+=======
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>B2_Sort_and_Sweep_Test</RootNamespace>
+  </PropertyGroup>
+
+</Project>
+>>>>>>> e14a60ec7989911bef5da844beea710d0704636e

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v5.0",
@@ -20,4 +21,28 @@
       "sha512": ""
     }
   }
+=======
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v5.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v5.0": {
+      "B2 Sort and Sweep Test/1.0.0": {
+        "runtime": {
+          "B2 Sort and Sweep Test.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "B2 Sort and Sweep Test/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+>>>>>>> e14a60ec7989911bef5da844beea710d0704636e
 }

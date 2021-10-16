@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "version": 2,
   "dgSpecHash": "+e1UtWcPM6sK2YUv+wxRxdO0NiuP9v5ENGGw43t+OUCE9QheWd4ioYd2Y2yiUAo5vIaGeaTov98msXrl1sVceA==",
@@ -5,4 +6,13 @@
   "projectFilePath": "C:\\Users\\andre\\Desktop\\Y4S1\\Comp Graphics\\B2 Sort and Sweep Test\\B2 Sort and Sweep Test.csproj",
   "expectedPackageFiles": [],
   "logs": []
+=======
+{
+  "version": 2,
+  "dgSpecHash": "+e1UtWcPM6sK2YUv+wxRxdO0NiuP9v5ENGGw43t+OUCE9QheWd4ioYd2Y2yiUAo5vIaGeaTov98msXrl1sVceA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\andre\\Desktop\\Y4S1\\Comp Graphics\\B2 Sort and Sweep Test\\B2 Sort and Sweep Test.csproj",
+  "expectedPackageFiles": [],
+  "logs": []
+>>>>>>> e14a60ec7989911bef5da844beea710d0704636e
 }

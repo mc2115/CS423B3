@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 is_global = true
 build_property.TargetFramework = net5.0
 build_property.TargetPlatformMinVersion = 
@@ -8,3 +9,15 @@ build_property.IncludeAllContentForSelfExtract =
 build_property._SupportedPlatformList = Android,iOS,Linux,macOS,Windows
 build_property.RootNamespace = B2_Sort_and_Sweep_Test
 build_property.ProjectDir = C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\
+=======
+is_global = true
+build_property.TargetFramework = net5.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.PublishSingleFile = 
+build_property.IncludeAllContentForSelfExtract = 
+build_property._SupportedPlatformList = Android,iOS,Linux,macOS,Windows
+build_property.RootNamespace = B2_Sort_and_Sweep_Test
+build_property.ProjectDir = C:\Users\andre\Desktop\Y4S1\Comp Graphics\B2 Sort and Sweep Test\
+>>>>>>> e14a60ec7989911bef5da844beea710d0704636e
