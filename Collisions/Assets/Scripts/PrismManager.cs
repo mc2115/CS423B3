@@ -121,13 +121,27 @@ public class PrismManager : MonoBehaviour
 
         yield break;
     }
-    private IEnumerable<PrismCollision> PotentialCollisions()
+    /*private IEnumerable<PrismCollision> PotentialCollisions1()
     {
-        ArrayList p=new ArrayList();
+        Dictionary<float, ArrayList> dict=new Dictionary<float, ArrayList>();
+        ArrayList xcoord=new ArrayList();
+        ArrayList ycoord=new ArrayList();
         for (int i = 0; i < prisms.Count; i++) {
-            p.Add(prisms[i]);
+            float[] temp=minMaxXY(prisms[i]);
+            ArrayList val=new ArrayList();
+            val.Add(prisms[i]);
+            val.Add(temp);
+            dict[temp[0]]=val;
+            dict[temp[1]]=val;
+            dict[temp[2]]=val;
+            dict[temp[3]]=val;
+            xcoord.add(temp[0]);
+            xcoord.add(temp[2]);
+            ycoord.add(temp[1]);
+            ycoord.add(temp[3]);
         }
-        sort(p,0,p.Count);
+        sort(xcoord,0,xcoord.Count-1);
+        sort(ycoord,0,ycoord.Count-1);
         var activeList = new ArrayList();
 
         int c = 0; //c is the index of the prism that we are checking collisions for
@@ -148,6 +162,7 @@ public class PrismManager : MonoBehaviour
                 activeList.Add(pris);
             }
             else if(minX <= cmaxX){  // if selected prism has potential collision, add to active list
+                //Debug.Log(minX+" less than "+cmaxX);
                 activeList.Add(p[i]);
                 var collision=new PrismCollision();
                 collision.a=(Prism) p[i];
@@ -156,6 +171,7 @@ public class PrismManager : MonoBehaviour
             }
             else if(minX> cmaxX){ // if selected prism is not a potential collision, check for collisions for all prisms in active list
                 //checkCollisions(activeList);
+                Debug.Log(minX+" greater than "+cmaxX);
                 activeList.Add(p[i]);
                 for(int j = c ; j < i; j++){    // iterate and delete all items no longer a potential collision with selected prism
                     if(minX> minMaxXY((Prism) p[j])[2]){
@@ -172,6 +188,77 @@ public class PrismManager : MonoBehaviour
 
         }
         yield break;
+    }*/
+    private IEnumerable<PrismCollision> PotentialCollisions()
+    {
+        Dictionary<float, Prism> dictX=new Dictionary<float, Prism>();
+        Dictionary<float, Prism> dictY=new Dictionary<float, Prism>();
+        List<float> xcoord=new List<float>();
+        List<float> ycoord=new List<float>();
+        for (int i = 0; i < prisms.Count; i++) {
+            float[] temp=minMaxXY(prisms[i]);
+            Prism val=prisms[i];
+            dictX[temp[0]]=val;
+            dictY[temp[1]]=val;
+            dictX[temp[2]]=val;
+            dictY[temp[3]]=val;
+            xcoord.Add(temp[0]);
+            xcoord.Add(temp[2]);
+            ycoord.Add(temp[1]);
+            ycoord.Add(temp[3]);
+        }
+
+        sort(xcoord,0,xcoord.Count-1);
+        sort(ycoord,0,ycoord.Count-1);
+        var collisionsX= new List<PrismCollision>();
+        List<Prism> activeListX = new List<Prism>();
+        for (int i=0; i<xcoord.Count; i++){
+          Prism p= dictX[xcoord[i]];
+          //float[] temp= (float[]) dict.get(xcoord[i])[1];
+          if (activeListX.Contains(p)){
+            int index=activeListX.IndexOf(p);
+            if (index!=activeListX.Count-1){
+              for (int j=index+1; j< activeListX.Count; j++){
+                PrismCollision coll = new PrismCollision();
+                coll.a=p;
+                coll.b= activeListX[j];
+                collisionsX.Add(coll);
+              }
+            }
+          } else {
+            activeListX.Add(p);
+          }
+        }
+        var collisionsY= new List<PrismCollision>();
+        List<Prism> activeListY = new List<Prism>();
+        for (int i=0; i<ycoord.Count; i++){
+          Prism p=dictY[ycoord[i]];
+          //float[] temp= (float[]) dict.get(ycoord[i])[1];
+          if (activeListY.Contains(p)){
+            int index=activeListY.IndexOf(p);
+            if (index!=activeListY.Count-1){
+              for (int j=index+1; j< activeListY.Count; j++){
+                PrismCollision coll = new PrismCollision();
+                coll.a=p;
+                coll.b=activeListY[j];
+                collisionsY.Add(coll);
+              }
+            }
+          } else {
+            activeListY.Add(p);
+          }
+        }
+
+        for (int i=0; i<collisionsX.Count; i++){
+          PrismCollision colX=collisionsX[i];
+          for (int j=0; j<collisionsY.Count; j++){
+            PrismCollision colY=collisionsY[j];
+            if ((colX.a==colY.a && colX.b==colY.b)||(colX.a==colY.b && colX.b==colY.a)){
+              yield return colX;
+            }
+          }
+        }
+        yield break;
     }
 
     private static float[] minMaxXY(Prism p){
@@ -181,41 +268,37 @@ public class PrismManager : MonoBehaviour
       float maxY=int.MinValue;
       for (int i=0; i<p.points.Length; i++){
         Vector3 use=p.points[i];
+        //Debug.Log(p.name+" "+use);
         float valX=use.x;
         float valY=use.z;
         if (valX<minX) minX=valX;
         if (valY<minY) minY=valY;
         if (valX>maxX) maxX=valX;
-        if (valX<maxY) maxY=valY;
+        if (valY>maxY) maxY=valY;
       }
+      //Debug.Log("Name "+p.name+" minX "+minX+" minY "+minY+" maxX "+ maxX+" maxY "+maxY);
       return new float[]{minX,minY,maxX,maxY};
     }
-    public void merge(ArrayList p, int l, int m, int r){
+    public void merge(List<float> p, int l, int m, int r){
         int n1 = m - l + 1;
         int n2 = r - m;
         // Create temp arrays
-        Prism[] L = new Prism[n1];
-        Prism[] R = new Prism[n2];
+        float[] L = new float[n1];
+        float[] R = new float[n2];
         int i, j;
 
         // Copy data to temp arrays
         for (i = 0; i < n1; ++i)
-            L[i] = (Prism) p[l + i];
+            L[i] =  p[l + i];
         for (j = 0; j < n2; ++j)
-            R[j] = (Prism)p[m + 1 + j];
+            R[j] = p[m + 1 + j];
 
-        // Merge the temp arrays
-
-        // Initial indexes of first
-        // and second subarrays
         i = 0;
         j = 0;
 
-        // Initial index of merged
-        // subarray array
         int k = l;
         while (i < n1 && j < n2) {
-            if (minMaxXY((Prism)L[i])[0]<= minMaxXY((Prism)R[j])[0]) {
+            if (L[i]<= R[j]) {
                 p[k] = L[i];
                 i++;
             }
@@ -226,16 +309,12 @@ public class PrismManager : MonoBehaviour
             k++;
         }
 
-        // Copy remaining elements
-        // of L[] if any
         while (i < n1) {
             p[k] = L[i];
             i++;
             k++;
         }
 
-        // Copy remaining elements
-        // of R[] if any
         while (j < n2) {
             p[k] = R[j];
             j++;
@@ -243,7 +322,7 @@ public class PrismManager : MonoBehaviour
         }
     }
 
-    public void sort(ArrayList p, int l, int r){
+    public void sort(List<float> p, int l, int r){
         if (l < r) {
             // Find the middle
             // point
@@ -262,9 +341,10 @@ public class PrismManager : MonoBehaviour
 
     private bool CheckCollision(PrismCollision collision)
     {
+
         var prismA = collision.a;
         var prismB = collision.b;
-
+        Debug.Log("We made it with "+prismA.prismObject.name+" "+prismB.prismObject.name);
 
         collision.penetrationDepthVectorAB = Vector3.zero;
 
