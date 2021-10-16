@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class PrismManager : MonoBehaviour
+public class PrismManagerEC : MonoBehaviour
 {
     public int prismCount = 10;
     public float prismRegionRadiusXZ = 5;
@@ -196,28 +196,16 @@ public class PrismManager : MonoBehaviour
           }
         }
         //Debug.Log(collisionsX.Count+" "+collisionsY.Count+" "+collisionsZ.Count);
-        if (collisionsY.Count==0){
-          for (int i=0; i<collisionsX.Count; i++){
-            PrismCollision colX=collisionsX[i];
-            for (int j=0; j<collisionsZ.Count; j++){
-              PrismCollision colZ=collisionsZ[j];
-              if (collEquals(colX, colZ)){
+        for (int i=0; i<collisionsX.Count; i++){
+          PrismCollision colX=collisionsX[i];
+          for (int j=0; j<collisionsY.Count; j++){
+            PrismCollision colY=collisionsY[j];
+            for (int k=0; k<collisionsZ.Count; k++){
+              PrismCollision colZ=collisionsZ[k];
+              //Debug.Log(colX.a.name+" "+colX.b.name+" "+colY.a.name+" "+colY.b.name+" "+colZ.a.name+" "+colZ.b.name+" ");
+              if (collEquals(colX, colY)&& collEquals (colY, colZ)){
+                //Debug.Log("Collision!");
                 yield return colX;
-              }
-            }
-          }
-        } else {
-          for (int i=0; i<collisionsX.Count; i++){
-            PrismCollision colX=collisionsX[i];
-            for (int j=0; j<collisionsY.Count; j++){
-              PrismCollision colY=collisionsY[j];
-              for (int k=0; k<collisionsZ.Count; k++){
-                PrismCollision colZ=collisionsZ[k];
-                //Debug.Log(colX.a.name+" "+colX.b.name+" "+colY.a.name+" "+colY.b.name+" "+colZ.a.name+" "+colZ.b.name+" ");
-                if (collEquals(colX, colY)&& collEquals (colY, colZ)){
-                  //Debug.Log("Collision!");
-                  yield return colX;
-                }
               }
             }
           }

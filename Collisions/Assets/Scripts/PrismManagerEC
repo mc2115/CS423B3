@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -107,7 +107,88 @@ public class PrismManager : MonoBehaviour
 
     #region Incomplete Functions
 
+    private IEnumerable<PrismCollision> PotentialCollisions2()
+    {
+        for (int i = 0; i < prisms.Count; i++) {
+            for (int j = i + 1; j < prisms.Count; j++) {
+                var checkPrisms = new PrismCollision();
+                checkPrisms.a = prisms[i];
+                checkPrisms.b = prisms[j];
 
+                yield return checkPrisms;
+            }
+        }
+
+        yield break;
+    }
+    /*private IEnumerable<PrismCollision> PotentialCollisions1()
+    {
+        Dictionary<float, ArrayList> dict=new Dictionary<float, ArrayList>();
+        ArrayList xcoord=new ArrayList();
+        ArrayList ycoord=new ArrayList();
+        for (int i = 0; i < prisms.Count; i++) {
+            float[] temp=minMaxXY(prisms[i]);
+            ArrayList val=new ArrayList();
+            val.Add(prisms[i]);
+            val.Add(temp);
+            dict[temp[0]]=val;
+            dict[temp[1]]=val;
+            dict[temp[2]]=val;
+            dict[temp[3]]=val;
+            xcoord.add(temp[0]);
+            xcoord.add(temp[2]);
+            ycoord.add(temp[1]);
+            ycoord.add(temp[3]);
+        }
+        sort(xcoord,0,xcoord.Count-1);
+        sort(ycoord,0,ycoord.Count-1);
+        var activeList = new ArrayList();
+
+        int c = 0; //c is the index of the prism that we are checking collisions for
+        Prism cPris=(Prism)p[c];
+        float[] temp=minMaxXY(cPris);
+        float cminX=temp[0];
+        float cminY=temp[1];
+        float cmaxX=temp[2];
+        float cmaxY=temp[3];
+        for(int i = 0; i < p.Count; i++){
+            Prism pris=(Prism) p[i];
+            float[] vals=minMaxXY(pris);
+            float minX=vals[0];
+            float minY=vals[1];
+            float maxX=vals[2];
+            float maxY=vals[3];
+            if(i == 0){  // base case, put the first item in the active list
+                activeList.Add(pris);
+            }
+            else if(minX <= cmaxX){  // if selected prism has potential collision, add to active list
+                //Debug.Log(minX+" less than "+cmaxX);
+                activeList.Add(p[i]);
+                var collision=new PrismCollision();
+                collision.a=(Prism) p[i];
+                collision.b=(Prism) p[c];
+                yield return collision;
+            }
+            else if(minX> cmaxX){ // if selected prism is not a potential collision, check for collisions for all prisms in active list
+                //checkCollisions(activeList);
+                Debug.Log(minX+" greater than "+cmaxX);
+                activeList.Add(p[i]);
+                for(int j = c ; j < i; j++){    // iterate and delete all items no longer a potential collision with selected prism
+                    if(minX> minMaxXY((Prism) p[j])[2]){
+                        activeList.Remove((Prism) p[j]);
+                    }
+                    c = j;
+                    temp=minMaxXY((Prism) p[c]);
+                    cminX=temp[0];
+                    cminY=temp[1];
+                    cmaxX=temp[2];
+                    cmaxY=temp[3];
+                }
+            }
+
+        }
+        yield break;
+    }*/
     private IEnumerable<PrismCollision> PotentialCollisions()
     {
         Dictionary<float, Prism> dictX=new Dictionary<float, Prism>();
@@ -135,7 +216,7 @@ public class PrismManager : MonoBehaviour
 
         sort(xcoord,0,xcoord.Count-1);
         sort(ycoord,0,ycoord.Count-1);
-        sort(zcoord,0,zcoord.Count-1);
+        sort(ycoord,0,zcoord.Count-1);
         var collisionsX= new List<PrismCollision>();
         List<Prism> activeListX = new List<Prism>();
         for (int i=0; i<xcoord.Count; i++){
@@ -155,11 +236,9 @@ public class PrismManager : MonoBehaviour
             activeListX.Add(p);
           }
         }
-        //Debug.Log(ycoord);
         var collisionsY= new List<PrismCollision>();
         List<Prism> activeListY = new List<Prism>();
         for (int i=0; i<ycoord.Count; i++){
-
           Prism p=dictY[ycoord[i]];
           //float[] temp= (float[]) dict.get(ycoord[i])[1];
           if (activeListY.Contains(p)){
@@ -195,29 +274,15 @@ public class PrismManager : MonoBehaviour
             activeListZ.Add(p);
           }
         }
-        //Debug.Log(collisionsX.Count+" "+collisionsY.Count+" "+collisionsZ.Count);
-        if (collisionsY.Count==0){
-          for (int i=0; i<collisionsX.Count; i++){
-            PrismCollision colX=collisionsX[i];
-            for (int j=0; j<collisionsZ.Count; j++){
-              PrismCollision colZ=collisionsZ[j];
-              if (collEquals(colX, colZ)){
+
+        for (int i=0; i<collisionsX.Count; i++){
+          PrismCollision colX=collisionsX[i];
+          for (int j=0; j<collisionsY.Count; j++){
+            PrismCollision colY=collisionsY[j];
+            for (int k=0; k<collisionsZ.Count; k++){
+              PrismCollision colZ=collisionsZ[k];
+              if (collEquals(colX, colY)&& collEquals (colY, colZ)){
                 yield return colX;
-              }
-            }
-          }
-        } else {
-          for (int i=0; i<collisionsX.Count; i++){
-            PrismCollision colX=collisionsX[i];
-            for (int j=0; j<collisionsY.Count; j++){
-              PrismCollision colY=collisionsY[j];
-              for (int k=0; k<collisionsZ.Count; k++){
-                PrismCollision colZ=collisionsZ[k];
-                //Debug.Log(colX.a.name+" "+colX.b.name+" "+colY.a.name+" "+colY.b.name+" "+colZ.a.name+" "+colZ.b.name+" ");
-                if (collEquals(colX, colY)&& collEquals (colY, colZ)){
-                  //Debug.Log("Collision!");
-                  yield return colX;
-                }
               }
             }
           }
@@ -225,11 +290,10 @@ public class PrismManager : MonoBehaviour
         yield break;
     }
     private bool collEquals(PrismCollision colX, PrismCollision colY){
-      //Debug.Log("Collision?");
       return ((colX.a==colY.a && colX.b==colY.b)||(colX.a==colY.b && colX.b==colY.a));
     }
 
-    private float[] minMaxXY(Prism p){
+    private static float[] minMaxXY(Prism p){
       float minX=int.MaxValue;
       float minY=int.MaxValue;
       float minZ=int.MaxValue;
@@ -238,7 +302,7 @@ public class PrismManager : MonoBehaviour
       float maxZ=int.MinValue;
       for (int i=0; i<p.points.Length; i++){
         Vector3 use=p.points[i];
-        //Debug.Log(p.name+" "+use.y);
+        //Debug.Log(p.name+" "+use);
         float valX=use.x;
         float valY=use.y;
         float valZ=use.z;
@@ -249,8 +313,8 @@ public class PrismManager : MonoBehaviour
         if (valY>maxY) maxY=valY;
         if (valZ>maxZ) maxZ=valZ;
       }
-      //Debug.Log("Name "+p.name+" minX "+minX+" minY "+minY+" maxX "+ maxX+" maxY "+maxY+" minZ "+ minZ+" maxZ "+maxZ);
-      return new float[]{minX,minY-p.height,minZ,maxX,maxY+p.height,maxZ};
+      //Debug.Log("Name "+p.name+" minX "+minX+" minY "+minY+" maxX "+ maxX+" maxY "+maxY);
+      return new float[]{minX,minY,minZ,maxX,maxY,maxZ};
     }
     public void merge(List<float> p, int l, int m, int r){
         int n1 = m - l + 1;
