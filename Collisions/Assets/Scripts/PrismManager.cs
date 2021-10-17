@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using UnityEngine;
 
 public class PrismManager : MonoBehaviour
@@ -16,7 +17,7 @@ public class PrismManager : MonoBehaviour
     private List<Prism> prisms = new List<Prism>();
     private List<GameObject> prismObjects = new List<GameObject>();
     private GameObject prismParent;
-    private Dictionary<Prism,bool> prismColliding = new Dictionary<Prism, bool>();
+    private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
     private const float UPDATE_RATE = 0.5f;
 
@@ -24,19 +25,19 @@ public class PrismManager : MonoBehaviour
 
     void Start()
     {
-        Random.InitState(0);    //10 for no collision
+        UnityEngine.Random.InitState(0);    //10 for no collision
 
         prismParent = GameObject.Find("Prisms");
         for (int i = 0; i < prismCount; i++)
         {
-            var randPointCount = Mathf.RoundToInt(3 + Random.value * 7);
-            var randYRot = Random.value * 360;
-            var randScale = new Vector3((Random.value - 0.5f) * 2 * maxPrismScaleXZ, (Random.value - 0.5f) * 2 * maxPrismScaleY, (Random.value - 0.5f) * 2 * maxPrismScaleXZ);
-            var randPos = new Vector3((Random.value - 0.5f) * 2 * prismRegionRadiusXZ, (Random.value - 0.5f) * 2 * prismRegionRadiusY, (Random.value - 0.5f) * 2 * prismRegionRadiusXZ);
+            var randPointCount = Mathf.RoundToInt(3 + UnityEngine.Random.value * 7);
+            var randYRot = UnityEngine.Random.value * 360;
+            var randScale = new Vector3((UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleXZ, (UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleY, (UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleXZ);
+            var randPos = new Vector3((UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusXZ, (UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusY, (UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusXZ);
 
             GameObject prism = null;
             Prism prismScript = null;
-            if (Random.value < 0.5f)
+            if (UnityEngine.Random.value < 0.5f)
             {
                 prism = Instantiate(regularPrismPrefab, randPos, Quaternion.Euler(0, randYRot, 0));
                 prismScript = prism.GetComponent<RegularPrism>();
@@ -106,7 +107,6 @@ public class PrismManager : MonoBehaviour
     #endregion
 
     #region Incomplete Functions
-
 
     private IEnumerable<PrismCollision> PotentialCollisions()
     {
@@ -202,6 +202,7 @@ public class PrismManager : MonoBehaviour
             for (int j=0; j<collisionsZ.Count; j++){
               PrismCollision colZ=collisionsZ[j];
               if (collEquals(colX, colZ)){
+                Debug.Log("Collision!");
                 yield return colX;
               }
             }
@@ -310,9 +311,8 @@ public class PrismManager : MonoBehaviour
             merge(p, l, m, r);
         }
     }
-
-
-    private bool CheckCollision(PrismCollision collision)
+    //bool originally
+    private bool CheckCollision1(PrismCollision collision)
     {
 
         var prismA = collision.a;
@@ -323,6 +323,212 @@ public class PrismManager : MonoBehaviour
 
         return true;
     }
+    private bool CheckCollision(PrismCollision collision)
+    {
+        float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
+        bool isCollision = false;
+        Vector3 penetration_depth_vector = Vector3.zero;
+        Prism prismA = collision.a;
+        Prism prismB = collision.b;
+        //collision.penetrationDepthVectorAB = Vector3.zero;
+        Vector3[] MKDiffPoints = MKDiff(prismA, prismB);
+        List<Vector3> Simplex = new List<Vector3>();
+        Vector3 w = FindClosestPointFromOrigin(MKDiffPoints);
+        Simplex.Add(w);
+        Debug.Log("w is "+w);
+        Vector3 v = -w;
+        w = getSupportingPoint(MKDiffPoints, v);
+        Simplex.Add(w);
+        Debug.Log("second w is "+w );
+
+        while (true)
+        {
+            Vector3 new_v = -FindClosestPointFromOrigin(Simplex.ToArray()); //finds closest point to the origin from the Simplex
+            Debug.Log(Simplex[0]+" SECOND IS " +Simplex[1]);
+            if (Vector3.Distance(new_v, v) < tolerance)
+            {
+                Debug.Log("WE BREAK WITH" +new_v+" v is"+v);
+                break;
+            }
+            // Remove the third, irrelavant point from Simplex
+            Simplex.Remove(FindFarthestPointFromOrigin(Simplex.ToArray()));
+
+            v = new_v;
+            w = getSupportingPoint(MKDiffPoints, v);
+            Simplex.Add(w);
+            Debug.Log("w is "+w);
+        }
+        isCollision = DoesSimplexContainOrigin(Simplex);
+
+        if (isCollision == false)
+        {
+            Debug.Log("PRANKED XD");
+            penetration_depth_vector = Vector3.zero;
+        }
+        else
+        {
+            List<Vector3> expandingPolygon = Simplex;
+            Vector3 depth_vector = Vector3.zero;
+
+            while (true)
+            {
+                Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
+                Debug.Log("new vector "+new_depth_vector );
+                if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance)
+                {
+                    penetration_depth_vector = new_depth_vector;
+                    break;
+                }
+                depth_vector = new_depth_vector;
+                w = getSupportingPoint(MKDiffPoints, depth_vector);
+                expandingPolygon.Add(w);
+            }
+        }
+
+        Node ans = new Node(isCollision, penetration_depth_vector);
+        collision.penetrationDepthVectorAB=penetration_depth_vector;
+        Debug.Log(collision.penetrationDepthVectorAB);
+        return isCollision ;
+    }
+
+
+    private Vector3[] MKDiff(Prism prismA, Prism prismB)
+    {
+        Vector3[] result = new Vector3[prismA.points.Length * prismB.points.Length];
+        int k = 0;
+        for (int i = 0; i < prismA.points.Length; i++)
+        {
+            for (int j = 0; j < prismB.points.Length; j++)
+            {
+                Vector3 point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y - prismB.points[j].y, prismA.points[i].z - prismB.points[j].z);
+                result[k] = point;
+                //Debug.Log("kth point "+k+ " point is "+point);
+                k++;
+            }
+        }
+        return result;
+    }
+
+
+
+    private bool DoesSimplexContainOrigin(List<Vector3> Simplex)
+    {
+        Vector3 origin = new Vector3(0f, 0f, 0f);
+
+        return Simplex.Contains(origin);
+    }
+
+    private static Vector3 Scale(float scale, Vector3 vec)
+    {
+        return new Vector3(scale*vec.x, scale*vec.y, scale*vec.z);
+    }
+
+    private static float Dot(Vector3 vec, Vector3 other)
+    {
+        return (vec.x*other.x) + (vec.y*other.y) + (vec.z*other.z);
+    }
+
+    private static Vector3 Projection(Vector3 vec, Vector3 other)
+    {
+        return Scale(Dot(vec, other) / Dot(other, other), other);
+    }
+
+
+
+    private Vector3 getSupportingPoint2(Vector3[] MKDiffPoints, Vector3 v)
+    {
+
+        float[] distance = new float[MKDiffPoints.Length];
+        for (int i = 0; i < MKDiffPoints.Length; i++)
+        {
+            distance[i] = distanceFromOrigin(Projection(MKDiffPoints[i], v));
+        }
+        for (int i = 1; i < MKDiffPoints.Length; i++)
+        {
+            float key = distance[i];
+            Vector3 temp = MKDiffPoints[i];
+            int j = i - 1;
+
+            while (j >= 0 && distance[j] > key)
+            {
+                distance[j + 1] = distance[j];
+                MKDiffPoints[j+1] = MKDiffPoints[j+1];
+                j = j - 1;
+            }
+            distance[j + 1] = key;
+            MKDiffPoints[j+1] = temp;
+        }
+
+        return MKDiffPoints[0];
+    }
+    private Vector3 getSupportingPoint(Vector3[] MKDiffPoints, Vector3 v)
+    {
+        float max=float.MinValue;
+        Vector3 support=Vector3.zero;
+        for (int i=0; i<MKDiffPoints.Length; i++){
+          Vector3 d=MKDiffPoints[i];
+          float dot=Dot(v,d);
+          if (dot>max){
+            Debug.Log("NEW MAX IS "+ d+" "+v);
+            max=dot;
+            support=d;
+          }
+        }
+        return support;
+    }
+
+
+    private Vector3 FindClosestPointFromOrigin(Vector3[] Simplex)
+    {
+        float min = float.MaxValue;
+        float distance = 0;
+        Vector3 result = new Vector3(0, 0, 0);
+        for (int i = 0; i < Simplex.Length; i++)
+        {
+            distance = distanceFromOrigin(Simplex[i]);
+            if (distance < min)
+            {
+                result = Simplex[i];
+                min=distance;
+            }
+        }
+        return result;
+    }
+    private Vector3 FindFarthestPointFromOrigin(Vector3[] Simplex)
+    {
+        float max = float.MinValue;
+        float distance = 0;
+        Vector3 result = new Vector3(0, 0, 0);
+        for (int i = 0; i < Simplex.Length; i++)
+        {
+            distance = distanceFromOrigin(Simplex[i]);
+            if (distance > max)
+            {
+                result = Simplex[i];
+                max=distance;
+            }
+        }
+        return result;
+    }
+
+    private float distanceFromOrigin(Vector3 vec)
+    {
+        float distance = (float) Math.Sqrt(Math.Pow(vec.x, 2) + Math.Pow(vec.y, 2) + Math.Pow(vec.z, 2));
+        return distance;
+    }
+
+    private bool DoesSimplexContainOrigin(Vector3[] simplex)
+    {
+        bool result = false;
+        for (int i = 0; i < simplex.Length; i++)
+        {
+            if (simplex[i].x == 0 && simplex[i].y == 0 && simplex[i].z == 0)
+            {
+                result = true;
+            }
+        }
+        return result;
+    }
 
     #endregion
 
@@ -332,7 +538,7 @@ public class PrismManager : MonoBehaviour
     {
         var prismObjA = collision.a.prismObject;
         var prismObjB = collision.b.prismObject;
-
+        Debug.Log(collision.penetrationDepthVectorAB);
         var pushA = -collision.penetrationDepthVectorAB / 2;
         var pushB = collision.penetrationDepthVectorAB / 2;
 
@@ -400,8 +606,6 @@ public class PrismManager : MonoBehaviour
         }
     }
 
-
-
     #endregion
 
     #region Utility Classes
@@ -413,16 +617,29 @@ public class PrismManager : MonoBehaviour
         public Vector3 penetrationDepthVectorAB;
     }
 
-    private class Tuple<K,V>
+    private class Tuple<K, V>
     {
         public K Item1;
         public V Item2;
 
-        public Tuple(K k, V v) {
+        public Tuple(K k, V v)
+        {
             Item1 = k;
             Item2 = v;
         }
     }
 
+    private class Node
+    {
+        public bool a; //isCollision
+        public Vector3 b; //penetration depth vector
+
+        public Node(bool a, Vector3 b)
+        {
+            this.a = a;
+            this.b = b;
+
+        }
+    }
     #endregion
 }
