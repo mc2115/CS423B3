@@ -31,6 +31,7 @@ public class PrismManager : MonoBehaviour
         for (int i = 0; i < prismCount; i++)
         {
             var randPointCount = Mathf.RoundToInt(3 + UnityEngine.Random.value * 7);
+            //var randPointCount = Mathf.RoundToInt(3);
             var randYRot = UnityEngine.Random.value * 360;
             var randScale = new Vector3((UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleXZ, (UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleY, (UnityEngine.Random.value - 0.5f) * 2 * maxPrismScaleXZ);
             var randPos = new Vector3((UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusXZ, (UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusY, (UnityEngine.Random.value - 0.5f) * 2 * prismRegionRadiusXZ);
@@ -330,35 +331,23 @@ public class PrismManager : MonoBehaviour
         Vector3 penetration_depth_vector = Vector3.zero;
         Prism prismA = collision.a;
         Prism prismB = collision.b;
-        //collision.penetrationDepthVectorAB = Vector3.zero;
         Vector3[] MKDiffPoints = MKDiff(prismA, prismB);
         List<Vector3> Simplex = new List<Vector3>();
-        Vector3 w = FindClosestPointFromOrigin(MKDiffPoints);
+
+        Vector3 w = MKDiffPoints[0];
+
+        w = getSupportingPoint(MKDiffPoints, w);
         Simplex.Add(w);
-        Debug.Log("w is "+w);
         Vector3 v = -w;
-        w = getSupportingPoint(MKDiffPoints, v);
-        Simplex.Add(w);
-        Debug.Log("second w is "+w );
-
-        while (true)
-        {
-            Vector3 new_v = -FindClosestPointFromOrigin(Simplex.ToArray()); //finds closest point to the origin from the Simplex
-            Debug.Log(Simplex[0]+" SECOND IS " +Simplex[1]);
-            if (Vector3.Distance(new_v, v) < tolerance)
-            {
-                Debug.Log("WE BREAK WITH" +new_v+" v is"+v);
-                break;
-            }
-            // Remove the third, irrelavant point from Simplex
-            Simplex.Remove(FindFarthestPointFromOrigin(Simplex.ToArray()));
-
-            v = new_v;
-            w = getSupportingPoint(MKDiffPoints, v);
-            Simplex.Add(w);
-            Debug.Log("w is "+w);
+        while (true){
+          w=getSupportingPoint(MKDiffPoints, v);
+          if (Dot(w,v)<=0) break;
+          Simplex.Add(w);
+          if (NextSimplex(Simplex,v)) {
+			       isCollision=true;
+             break;
+		      }
         }
-        isCollision = DoesSimplexContainOrigin(Simplex);
 
         if (isCollision == false)
         {
@@ -385,12 +374,142 @@ public class PrismManager : MonoBehaviour
             }
         }
 
-        Node ans = new Node(isCollision, penetration_depth_vector);
         collision.penetrationDepthVectorAB=penetration_depth_vector;
         Debug.Log(collision.penetrationDepthVectorAB);
         return isCollision ;
     }
 
+    bool NextSimplex( List<Vector3> points,	Vector3 direction){
+    	switch (points.Count()) {
+    		case 2: return Line       (points, direction);
+    		case 3: return Triangle   (points, direction);
+    		case 4: return Tetrahedron(points, direction);
+    	}
+
+    	// never should be here
+    	return false;
+    }
+    bool SameDirection(Vector3 direction, Vector3 ao){
+    	return Dot(direction, ao) > 0;
+    }
+    bool Line(List<Vector3> points,	Vector3 direction){
+    	Vector3 a = points[0];
+    	Vector3 b = points[1];
+
+    	Vector3 ab = b - a;
+    	Vector3 ao =   - a;
+
+    	if (SameDirection(ab, ao)) {
+    		direction = cross(cross(ab,ao),ab);
+    	}
+    	else {
+        List<Vector3> temp= new List<Vector3>();
+        temp.Add(a);
+    		points = temp;
+    		direction = ao;
+    	}
+    	return false;
+    }
+    bool Triangle(List<Vector3> points,	Vector3 direction){
+      Vector3 a = points[0];
+    	Vector3 b = points[1];
+    	Vector3 c = points[2];
+
+    	Vector3 ab = b - a;
+    	Vector3 ac = c - a;
+    	Vector3 ao =   - a;
+
+    	Vector3 abc = cross(ab,ac);
+
+    	if (SameDirection(cross(abc,ac),ao)) {
+    		if (SameDirection(ac, ao)) {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(c);
+      		points = temp;
+    			direction = cross(cross(ac,ao),ac);
+    		}
+
+    		else {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(b);
+      		points = temp;
+    			return Line(points , direction);
+    		}
+    	}
+
+    	else {
+    		if (SameDirection(cross(ab,abc), ao)) {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(b);
+      		points = temp;
+    			return Line(points, direction);
+    		}
+
+    		else {
+    			if (SameDirection(abc, ao)) {
+    				direction = abc;
+    			}
+
+    			else {
+            List<Vector3> temp= new List<Vector3>();
+            temp.Add(a);
+            temp.Add(c);
+            temp.Add(b);
+            points = temp;
+    				direction = -abc;
+    			}
+    		}
+    	}
+
+    	return false;
+    }
+    bool Tetrahedron (List<Vector3> points,	Vector3 direction)
+    {
+    	Vector3 a = points[0];
+    	Vector3 b = points[1];
+    	Vector3 c = points[2];
+    	Vector3 d = points[3];
+
+    	Vector3 ab = b - a;
+    	Vector3 ac = c - a;
+    	Vector3 ad = d - a;
+    	Vector3 ao =   - a;
+
+    	Vector3 abc = cross(ab,ac);
+    	Vector3 acd = cross(ac,ad);
+    	Vector3 adb = cross(ad,ab);
+
+    	if (SameDirection(abc, ao)) {
+        List<Vector3> temp= new List<Vector3>();
+        temp.Add(a);
+        temp.Add(b);
+        temp.Add(c);
+        points = temp;
+    		return Triangle(points, direction);
+    	}
+
+    	if (SameDirection(acd, ao)) {
+        List<Vector3> temp= new List<Vector3>();
+        temp.Add(a);
+        temp.Add(c);
+        temp.Add(d);
+        points = temp;
+    		return Triangle(points , direction);
+    	}
+
+    	if (SameDirection(adb, ao)) {
+        List<Vector3> temp= new List<Vector3>();
+        temp.Add(a);
+        temp.Add(d);
+        temp.Add(b);
+    		return Triangle(points, direction);
+    	}
+
+    	return true;
+    }
 
     private Vector3[] MKDiff(Prism prismA, Prism prismB)
     {
@@ -406,6 +525,9 @@ public class PrismManager : MonoBehaviour
                 k++;
             }
         }
+        /*for (int i=0; i<result.Length; i++){
+          Debug.DrawLine(result[i], result[(i + 1) % result.Length] , Color.yellow);
+        }*/
         return result;
     }
 
@@ -432,7 +554,10 @@ public class PrismManager : MonoBehaviour
     {
         return Scale(Dot(vec, other) / Dot(other, other), other);
     }
-
+    private static Vector3 cross(Vector3 vec, Vector3 other)
+    {
+        return new Vector3(vec.y*other.z-vec.z*other.y, vec.z*other.x-vec.x*other.z, vec.x*other.y-vec.y*other.x);
+    }
 
 
     private Vector3 getSupportingPoint2(Vector3[] MKDiffPoints, Vector3 v)
@@ -469,7 +594,7 @@ public class PrismManager : MonoBehaviour
           Vector3 d=MKDiffPoints[i];
           float dot=Dot(v,d);
           if (dot>max){
-            Debug.Log("NEW MAX IS "+ d+" "+v);
+            //Debug.Log("NEW MAX IS "+ d+" "+v);
             max=dot;
             support=d;
           }
