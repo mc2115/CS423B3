@@ -313,168 +313,89 @@ public class PrismManager : MonoBehaviour
         }
     }
 
-    private Node CheckCollision(PrismCollision collision)
-    {
-        float tolerance = 0f; //SET LATER
-        bool isCollision = false;
-        Vector3 penetration_depth_vector = Vector3.zero;
-        Prism prismA = collision.a;
-        Prism prismB = collision.b;
+    public void mergeVector(List<Vector3> p, int l, int m, int r, int dim){
+        int n1 = m - l + 1;
+        int n2 = r - m;
+        // Create temp arrays
+        Vector3[] L = new Vector3[n1];
+        Vector3[] R = new Vector3[n2];
+        int i, j;
 
-        // collision.penetrationDepthVectorAB = Vector3.zero;
+        // Copy data to temp arrays
+        for (i = 0; i < n1; ++i)
+            L[i] =  p[l + i];
+        for (j = 0; j < n2; ++j)
+            R[j] = p[m + 1 + j];
 
-        Vector3[] MKDiffPoints = MKDiff(prismA, prismB);
-        List<Vector3> Simplex = new List<Vector3>();
-        Vector3 w = MKDiffPoints[0];
-        Simplex.Add(w);
+        i = 0;
+        j = 0;
 
-        Vector3 v = -w;
-        w = getSupportingPoint(MKDiffPoints, v);
-        Simplex.Add(w);
-
-        while (true)
-        {
-            Vector3 new_v = FindClosestPointFromOrigin(Simplex.ToArray()); //finds closest point to the origin from the Simplex
-
-            if (Vector3.Distance(new_v, v) < tolerance)
-            {
-                break;
-            }
-
-            v = new_v;
-            w = getSupportingPoint(MKDiffPoints, v);
-            Simplex.Add(w);
-
-            isCollision = DoesSimplexContainOrigin(Simplex);
-
-
-            if (!isCollision)
-            {
-                penetration_depth_vector = Vector3.zero;
-            }
-            else
-            {
-                List<Vector3> expandingPolygon = Simplex;
-                Vector3 depth_vector = Vector3.zero;
-
-                while (true)
-                {
-                    Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
-                    if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance)
-                    {
-                        penetration_depth_vector = new_depth_vector;
-                        break;
-                    }
-                    depth_vector = new_depth_vector;
-                    w = getSupportingPoint(MKDiffPoints, depth_vector);
-                    expandingPolygon.AddBetweenClosestEdge(w);
+        int k = l;
+        while (i < n1 && j < n2) {
+            if(dim == 0){
+                if (L[i].x<= R[j].x) {
+                    p[k] = L[i];
+                    i++;
                 }
+                else {
+                    p[k] = R[j];
+                    j++;
+                }
+                k++;
             }
-        }
-        Node ans = new Node(isCollision, penetration_depth_vector);
-        return ans ;
-    }
-
-    private Vector3[] MKDiff(Prism prismA, Prism prismB)
-    {
-        Vector3[] result = new Vector3[prismA.points.Length * prismB.points.Length];
-        int k = 0;
-        for (int i = 0; i < prismA.points.Length; i++)
-        {
-            for (int j = 0; j < prismB.points.Length; j++)
-            {
-                Vector3 point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y - prismB.points[j].y, prismA.points[i].z - prismB.points[j].z);
-                result[k] = point;
+            else if (dim == 1){
+                 if (L[i].y<= R[j].y) {
+                    p[k] = L[i];
+                    i++;
+                }
+                else {
+                    p[k] = R[j];
+                    j++;
+                }
+                k++;               
+            }
+            else if (dim == 2){
+                if (L[i].z<= R[j].z) {
+                    p[k] = L[i];
+                    i++;
+                }
+                else {
+                    p[k] = R[j];
+                    j++;
+                }
                 k++;
             }
         }
-        return result;
-    }
 
-
-
-    private bool DoesSimplexContainOrigin(List<Vector3> Simplex)
-    {
-        Vector3 origin = new Vector3(0f, 0f, 0f);
-
-        return Simplex.Contains(origin);
-    }
-
-    private static Vector3 Scale(float scale, Vector3 vec)
-    {
-        return new Vector3(scale*vec.x, scale*vec.y, scale*vec.z);
-    }
-
-    private static float Dot(Vector3 vec, Vector3 other)
-    {
-        return (vec.x*other.x) + (vec.y*other.y) + (vec.z*other.z);
-    }
-
-    private static Vector3 Projection(Vector3 vec, Vector3 other)
-    {
-        return Scale(Dot(vec, other) / Dot(other, other), other);
-    }
-
-
-
-    private Vector3 getSupportingPoint(Vector3[] MKDiffPoints, Vector3 v)
-    {
-        float[] distance = new float[MKDiffPoints.Length];
-        for (int i = 0; i < MKDiffPoints.Length; i++)
-        {
-            distance[i] = distanceFromOrigin(Projection(MKDiffPoints[i], v));
-        }
-        for (int i = 1; i < MKDiffPoints.Length; i++)
-        {
-            float key = distance[i];
-            int j = i - 1;
-
-            while (j >= 0 && distance[j] > key)
-            {
-                distance[j + 1] = distance[j];
-                j = j - 1;
-            }
-            arr[j + 1] = key;
+        while (i < n1) {
+            p[k] = L[i];
+            i++;
+            k++;
         }
 
-        return distance[0];
-    }
-
-
-    private Vector3 FindClosestPointFromOrigin(Vector3[] Simplex)
-    {
-        float min = float.MaxValue;
-        float distance = 0f;
-        Vector3 result = new Vector3(0, 0, 0);
-        for (int i = 0; i < Simplex.Length; i++)
-        {
-            distance = distanceFromOrigin(Simplex[i]);
-            if (distance < min)
-            {
-                result = Simplex[i];
-            }
+        while (j < n2) {
+            p[k] = R[j];
+            j++;
+            k++;
         }
-        return result;
     }
 
-    private float distanceFromOrigin(Vector3 vec)
-    {
-        float distance = (float) Math.Sqrt(Math.Pow(vec.x, 2) + Math.Pow(vec.y, 2) + Math.Pow(vec.z, 2));
-        return distance;
-    }
+    public void sortVector(List<Vector3> p, int l, int r, int dim){
+        if (l < r) {
+            // Find the middle
+            // point
+            int m = l+ (r-l)/2;
 
-    private bool DoesSimplexContainOrigin(Vector3[] simplex)
-    {
-        bool result = false;
-        for (int i = 0; i < simplex.Length; i++)
-        {
-            if (simplex[i].x == 0 && simplex[i].y == 0 && simplex[i].z == 0)
-            {
-                result = true;
-            }
+            // Sort first and
+            // second halves
+            sortVector(p, l, m, dim);
+            sortVector(p, m + 1, r, dim);
+
+            // Merge the sorted halves
+            mergeVector(p, l, m, r, dim);
         }
-        return result;
     }
+
     private bool CheckCollision(PrismCollision collision)
     {
         float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
@@ -710,7 +631,6 @@ public class PrismManager : MonoBehaviour
         return new Vector3(vec.y*other.z-vec.z*other.y, vec.z*other.x-vec.x*other.z, vec.x*other.y-vec.y*other.x);
     }
 
-
     private Vector3 getSupportingPoint2(Vector3[] MKDiffPoints, Vector3 v)
     {
 
@@ -881,6 +801,15 @@ public class PrismManager : MonoBehaviour
             }
         }
     }
+    
+    private void Split<T>(T[] array, int index, out T[] first, out T[] second) {
+        first = array.Take(index).ToArray();
+        second = array.Skip(index).ToArray();
+    }
+
+    private void SplitMidPoint<T>(T[] array, out T[] first, out T[] second) {
+        Split(array, array.Length / 2, out first, out second);
+    }
 
     #endregion
 
@@ -915,6 +844,26 @@ public class PrismManager : MonoBehaviour
             this.a = a;
             this.b = b;
 
+        }
+    }
+
+    private class KDTree
+    {
+        public Vector3 location;
+        public KDTree leftChild;
+        public KDTree rightChild;
+
+        public KDTree(Vector3 [] points, int depth){
+            Vector3 [] temp = points;
+            List <float> cords; 
+            int axis = depth%3;
+            sortVector(temp, 0, points.Length-1, axis);
+            int median = temp.Length/2;
+            this.location = temp[median];
+            Vector3[] left, right;
+            SplitMidPoint<Vector3>(temp, left, right);
+            leftChild = KDTree(left, depth+1);
+            rightChild = KDTree(right, depth+1);
         }
     }
     #endregion
