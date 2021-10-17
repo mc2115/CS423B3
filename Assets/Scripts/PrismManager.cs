@@ -200,13 +200,6 @@ public class PrismManager : MonoBehaviour
 
 
 
-
-
-
-
-
-
-    private 
     private Vector3[] MKDiff(Prism prismA, Prism prismB)
     {
         Vector3[] result = new Vector3[prismA.points.Length * prismB.points.Length];
