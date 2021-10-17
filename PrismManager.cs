@@ -124,16 +124,16 @@ public class PrismManager : MonoBehaviour
 
         yield break;
     }
-
+    //bool originally
     private Node CheckCollision(PrismCollision collision)
     {
-        float tolerance = 0f; //SET LATER
+        float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
         bool isCollision = false;
         Vector3 penetration_depth_vector = Vector3.zero;
         Prism prismA = collision.a;
         Prism prismB = collision.b;
 
-        // collision.penetrationDepthVectorAB = Vector3.zero;
+        collision.penetrationDepthVectorAB = Vector3.zero;
 
         Vector3[] MKDiffPoints = MKDiff(prismA, prismB);
         List<Vector3> Simplex = new List<Vector3>();
@@ -152,41 +152,61 @@ public class PrismManager : MonoBehaviour
             {
                 break;
             }
+            // Remove the third, irrelavant point from Simplex
+            Simplex.RemoveAt(0);
 
             v = new_v;
             w = getSupportingPoint(MKDiffPoints, v);
             Simplex.Add(w);
 
-            isCollision = DoesSimplexContainOrigin(Simplex);
+        isCollision = DoesSimplexContainOrigin(Simplex);
 
             
-            if (!isCollision)
-            {
-                penetration_depth_vector = Vector3.zero;
-            }
-            else
-            {
-                List<Vector3> expandingPolygon = Simplex;
-                Vector3 depth_vector = Vector3.zero;
+        if (isCollision == false)
+        {
+            penetration_depth_vector = Vector3.zero;
+        }
+        else
+        {
+            List<Vector3> expandingPolygon = Simplex;
+            Vector3 depth_vector = Vector3.zero;
 
-                while (true)
+            while (true)
+            {
+                Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
+                if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance)
                 {
-                    Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
-                    if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance)
-                    {
-                        penetration_depth_vector = new_depth_vector;
-                        break;
-                    }
-                    depth_vector = new_depth_vector;
-                    w = getSupportingPoint(MKDiffPoints, depth_vector);
-                    expandingPolygon.AddBetweenClosestEdge(w);
+                    penetration_depth_vector = new_depth_vector;
+                    break;
                 }
+
+
+                depth_vector = new_depth_vector;
+                w = getSupportingPoint(MKDiffPoints, depth_vector);
+                expandingPolygon.Add(w);
             }
         }
+    }
         Node ans = new Node(isCollision, penetration_depth_vector);
         return ans ;
     }
-    
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private 
     private Vector3[] MKDiff(Prism prismA, Prism prismB)
     {
         Vector3[] result = new Vector3[prismA.points.Length * prismB.points.Length];
@@ -239,17 +259,20 @@ public class PrismManager : MonoBehaviour
         for (int i = 1; i < MKDiffPoints.Length; i++)
         {
             float key = distance[i];
+            Vector3 temp = MKDiffPoints[i];
             int j = i - 1;
 
             while (j >= 0 && distance[j] > key)
             {
                 distance[j + 1] = distance[j];
+                MKDiffPoints[j+1] = MKDiffPoints[j+1];
                 j = j - 1;
             }
-            arr[j + 1] = key;
+            distance[j + 1] = key;
+            MKDiffPoints[j+1] = temp;
         }
 
-        return distance[0];
+        return MKDiffPoints[0];
     }
 
 
