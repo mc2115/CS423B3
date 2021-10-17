@@ -125,7 +125,7 @@ public class PrismManager : MonoBehaviour
         yield break;
     }
     //bool originally
-    private Node CheckCollision(PrismCollision collision)
+    private bool CheckCollision(PrismCollision collision)
     {
         float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
         bool isCollision = false;
@@ -187,8 +187,8 @@ public class PrismManager : MonoBehaviour
             }
         }
     }
-        Node ans = new Node(isCollision, penetration_depth_vector);
-        return ans ;
+        collision.penetrationDepthVectorAB = penetration_depth_vector;
+        return isCollision ;
     }
 
    
