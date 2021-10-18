@@ -257,6 +257,10 @@ public class PrismManager : MonoBehaviour
             //Debug.Log("xD");
             return;
         }
+
+        if(root.leftChild != null){
+            traverseTree(root.leftChild, activeList, dict, collisions);
+        }        
         //Debug.Log("root: " + root.location);
         Prism p = dict[root.location];
         if(activeList.Contains(p)){
@@ -265,16 +269,13 @@ public class PrismManager : MonoBehaviour
                 PrismCollision coll = new PrismCollision();
                 coll.a=p;
                 coll.b=activeList[j];
-                Debug.Log("collision");
+                //Debug.Log("collision");
                 collisions.Add(coll);
             }
         }
         else{
             activeList.Add(p);
-            Debug.Log("added prism");
-        }
-        if(root.leftChild != null){
-            traverseTree(root.leftChild, activeList, dict, collisions);
+            //Debug.Log("added prism");
         }
         if(root.rightChild != null){
             traverseTree(root.rightChild, activeList, dict, collisions);
