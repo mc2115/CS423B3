@@ -235,50 +235,29 @@ public class PrismManager : MonoBehaviour
         List <Vector3> points = new List <Vector3>();
         for (int i = 0; i < prisms.Count; i++) {
             float[] temp=minMaxXY(prisms[i]);
-            Vector3 min = Vector3(temp[0], temp[2], temp[4]);
-            Vector3 max = Vector3(temp[1], temp[3], temp[5]);
-            Prism val=prisms[i];       
+            Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
+            Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+            Prism val=prisms[i];      
             dict[min] = val;
             dict[max] = val;
-            points.add(min);
-            points.add(max);
+            points.Add(min);
+            points.Add(max);
         } 
         KDTree kd = new KDTree(points, 0);
-        var collisions = new List <PrismCollection> ();
+        var collisions = new List <PrismCollision> ();
         var activeList = new List <Prism> ();
-        //start from root
-        //check if children share the same prism
-        //if they don't check if children share prism with their own children
-        //if they do add children to a list, then add further children until they don't.
-        //
-        int height = height(kd);
-        return traverseTree(kd, height, activeList, dict);
+       traverseTree(kd, activeList, dict, collisions);
+       for(int i = 0; i < collisions.Count; i++){
+           yield return collisions[i];
+       }
     }
 
-    private int height(KDTree root)
-    {
-        if (root == null) {
-            return 0;
-        }
-        else {
-            /* compute height of each subtree */
-            int lheight = height(root.leftChild);
-            int rheight = height(root.rightChild);
- 
-            /* use the larger one */
-            if (lheight > rheight) {
-                return (lheight + 1);
-            }
-            else {
-                return (rheight + 1);
-            }
-        }
-    }
-
-    private IEnumerable<PrismCollision> traverseTree(KDTree root, list <Prism> activeList, Dictionary <Vector3, Prism> dict){
+    private void traverseTree(KDTree root, List <Prism> activeList, Dictionary <Vector3, Prism> dict, List<PrismCollision> collisions){
         if (root == null){
+            //Debug.Log("xD");
             return;
         }
+        //Debug.Log("root: " + root.location);
         Prism p = dict[root.location];
         if(activeList.Contains(p)){
             int index = activeList.IndexOf(p);
@@ -286,11 +265,20 @@ public class PrismManager : MonoBehaviour
                 PrismCollision coll = new PrismCollision();
                 coll.a=p;
                 coll.b=activeList[j];
-                yield return coll;
+                Debug.Log("collision");
+                collisions.Add(coll);
             }
         }
-        traverseTree(root.leftChild, activeList, dict);
-        traverseTRee(root.rightChild, activeList, dict);
+        else{
+            activeList.Add(p);
+            Debug.Log("added prism");
+        }
+        if(root.leftChild != null){
+            traverseTree(root.leftChild, activeList, dict, collisions);
+        }
+        if(root.rightChild != null){
+            traverseTree(root.rightChild, activeList, dict, collisions);
+        }
     }
 
     private bool collEquals(PrismCollision colX, PrismCollision colY){
@@ -377,89 +365,6 @@ public class PrismManager : MonoBehaviour
 
             // Merge the sorted halves
             merge(p, l, m, r);
-        }
-    }
-
-    public void mergeVector(List<Vector3> p, int l, int m, int r, int dim){
-        int n1 = m - l + 1;
-        int n2 = r - m;
-        // Create temp arrays
-        Vector3[] L = new Vector3[n1];
-        Vector3[] R = new Vector3[n2];
-        int i, j;
-
-        // Copy data to temp arrays
-        for (i = 0; i < n1; ++i)
-            L[i] =  p[l + i];
-        for (j = 0; j < n2; ++j)
-            R[j] = p[m + 1 + j];
-
-        i = 0;
-        j = 0;
-
-        int k = l;
-        while (i < n1 && j < n2) {
-            if(dim == 0){
-                if (L[i].x<= R[j].x) {
-                    p[k] = L[i];
-                    i++;
-                }
-                else {
-                    p[k] = R[j];
-                    j++;
-                }
-                k++;
-            }
-            else if (dim == 1){
-                 if (L[i].y<= R[j].y) {
-                    p[k] = L[i];
-                    i++;
-                }
-                else {
-                    p[k] = R[j];
-                    j++;
-                }
-                k++;               
-            }
-            else if (dim == 2){
-                if (L[i].z<= R[j].z) {
-                    p[k] = L[i];
-                    i++;
-                }
-                else {
-                    p[k] = R[j];
-                    j++;
-                }
-                k++;
-            }
-        }
-
-        while (i < n1) {
-            p[k] = L[i];
-            i++;
-            k++;
-        }
-
-        while (j < n2) {
-            p[k] = R[j];
-            j++;
-            k++;
-        }
-    }
-
-    public void sortVector(List<Vector3> p, int l, int r, int dim){
-        if (l < r) {
-            // Find the middle
-            // point
-            int m = l+ (r-l)/2;
-
-            // Sort first and
-            // second halves
-            sortVector(p, l, m, dim);
-            sortVector(p, m + 1, r, dim);
-
-            // Merge the sorted halves
-            mergeVector(p, l, m, r, dim);
         }
     }
 
@@ -679,21 +584,21 @@ public class PrismManager : MonoBehaviour
         return Simplex.Contains(origin);
     }
 
-    private static Vector3 Scale(float scale, Vector3 vec)
+    private Vector3 Scale(float scale, Vector3 vec)
     {
         return new Vector3(scale*vec.x, scale*vec.y, scale*vec.z);
     }
 
-    private static float Dot(Vector3 vec, Vector3 other)
+    private float Dot(Vector3 vec, Vector3 other)
     {
         return (vec.x*other.x) + (vec.y*other.y) + (vec.z*other.z);
     }
 
-    private static Vector3 Projection(Vector3 vec, Vector3 other)
+    private Vector3 Projection(Vector3 vec, Vector3 other)
     {
         return Scale(Dot(vec, other) / Dot(other, other), other);
     }
-    private static Vector3 cross(Vector3 vec, Vector3 other)
+    private Vector3 cross(Vector3 vec, Vector3 other)
     {
         return new Vector3(vec.y*other.z-vec.z*other.y, vec.z*other.x-vec.x*other.z, vec.x*other.y-vec.y*other.x);
     }
@@ -920,18 +825,130 @@ public class PrismManager : MonoBehaviour
         public KDTree leftChild;
         public KDTree rightChild;
 
-        public KDTree(Vector3 [] points, int depth){
-            Vector3 [] temp = points;
-            List <float> cords; 
+        public KDTree(List<Vector3> points, int depth){ 
+            List <Vector3> temp = points;
             int axis = depth%3;
-            sortVector(temp, 0, points.Length-1, axis);
-            int median = temp.Length/2;
+            if(points.Count == 0){
+                return;
+            }
+            sortVector(temp, 0, temp.Count-1, axis);
+            int median = temp.Count/2;
             this.location = temp[median];
-            Vector3[] left, right;
-            SplitMidPoint<Vector3>(temp, left, right);
-            leftChild = KDTree(left, depth+1);
-            rightChild = KDTree(right, depth+1);
+            //Debug.Log("Location " + temp[median]);
+            for(int i = 0; i < temp.Count; i++){
+                //Debug.Log("Adding " + temp[i]);
+            }
+            List <Vector3> left = new List <Vector3> ();
+            List <Vector3> right = new List <Vector3> ();
+            splitList(temp, left, right);
+            for(int i = 0; i < left.Count; i++){
+                //Debug.Log("Adding Left" + left[i]);
+            } 
+            for(int i = 0; i < right.Count; i++){
+                //Debug.Log("Adding Right" + right[i]);
+            }             
+            if(left.Count > 0){
+                this.leftChild = new KDTree(left, depth+1);
+            }
+            if(right.Count > 0){
+                this.rightChild = new KDTree(right, depth+1);    
+            }
+               
         }
+
+        public void splitList(List<Vector3> points, List<Vector3> left, List<Vector3> right){
+            int median = points.Count/2;
+            for(int i = 0; i < median; i++){
+                left.Add(points[i]);
+            }
+            for(int i = median+1; i < points.Count; i++){
+                right.Add(points[i]);
+            }
+        }
+
+        public void mergeVector(List<Vector3> p, int l, int m, int r, int dim){
+            int n1 = m - l + 1;
+            int n2 = r - m;
+            // Create temp arrays
+            Vector3[] L = new Vector3[n1];
+            Vector3[] R = new Vector3[n2];
+            int i, j;
+
+            // Copy data to temp arrays
+            for (i = 0; i < n1; ++i)
+                L[i] =  p[l + i];
+            for (j = 0; j < n2; ++j)
+                R[j] = p[m + 1 + j];
+
+            i = 0;
+            j = 0;
+
+            int k = l;
+            while (i < n1 && j < n2) {
+                if(dim == 0){
+                    if (L[i].x<= R[j].x) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+                else if (dim == 1){
+                    if (L[i].y<= R[j].y) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;               
+                }
+                else if (dim == 2){
+                    if (L[i].z<= R[j].z) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+            }
+
+            while (i < n1) {
+                p[k] = L[i];
+                i++;
+                k++;
+            }
+
+            while (j < n2) {
+                p[k] = R[j];
+                j++;
+                k++;
+            }
+        }
+
+        public void sortVector(List<Vector3> p, int l, int r, int dim){
+            if (l < r) {
+                // Find the middle
+                // point
+                int m = l+ (r-l)/2;
+
+                // Sort first and
+                // second halves
+                sortVector(p, l, m, dim);
+                sortVector(p, m + 1, r, dim);
+
+                // Merge the sorted halves
+                mergeVector(p, l, m, r, dim);
+            }
+        }
+
     }
     #endregion
 }
