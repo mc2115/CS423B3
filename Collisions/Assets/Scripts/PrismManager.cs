@@ -109,7 +109,9 @@ public class PrismManager : MonoBehaviour
 
     #region Incomplete Functions
 
-    private IEnumerable<PrismCollision> PotentialCollisions()
+//Just add all the points that make up the prisms to this list
+
+    private IEnumerable<PrismCollision> PotentialCollisions1()
     {
         Dictionary<float, Prism> dictX=new Dictionary<float, Prism>();
         Dictionary<float, Prism> dictY=new Dictionary<float, Prism>();
@@ -226,6 +228,71 @@ public class PrismManager : MonoBehaviour
         }
         yield break;
     }
+
+    private IEnumerable<PrismCollision> PotentialCollisions()
+    {
+        Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
+        List <Vector3> points = new List <Vector3>();
+        for (int i = 0; i < prisms.Count; i++) {
+            float[] temp=minMaxXY(prisms[i]);
+            Vector3 min = Vector3(temp[0], temp[2], temp[4]);
+            Vector3 max = Vector3(temp[1], temp[3], temp[5]);
+            Prism val=prisms[i];       
+            dict[min] = val;
+            dict[max] = val;
+            points.add(min);
+            points.add(max);
+        } 
+        KDTree kd = new KDTree(points, 0);
+        var collisions = new List <PrismCollection> ();
+        var activeList = new List <Prism> ();
+        //start from root
+        //check if children share the same prism
+        //if they don't check if children share prism with their own children
+        //if they do add children to a list, then add further children until they don't.
+        //
+        int height = height(kd);
+        return traverseTree(kd, height, activeList, dict);
+    }
+
+    private int height(KDTree root)
+    {
+        if (root == null) {
+            return 0;
+        }
+        else {
+            /* compute height of each subtree */
+            int lheight = height(root.leftChild);
+            int rheight = height(root.rightChild);
+ 
+            /* use the larger one */
+            if (lheight > rheight) {
+                return (lheight + 1);
+            }
+            else {
+                return (rheight + 1);
+            }
+        }
+    }
+
+    private IEnumerable<PrismCollision> traverseTree(KDTree root, list <Prism> activeList, Dictionary <Vector3, Prism> dict){
+        if (root == null){
+            return;
+        }
+        Prism p = dict[root.location];
+        if(activeList.Contains(p)){
+            int index = activeList.IndexOf(p);
+            for (int j = index+1; j < activeList.Count; j++){
+                PrismCollision coll = new PrismCollision();
+                coll.a=p;
+                coll.b=activeList[j];
+                yield return coll;
+            }
+        }
+        traverseTree(root.leftChild, activeList, dict);
+        traverseTRee(root.rightChild, activeList, dict);
+    }
+
     private bool collEquals(PrismCollision colX, PrismCollision colY){
       //Debug.Log("Collision?");
       return ((colX.a==colY.a && colX.b==colY.b)||(colX.a==colY.b && colX.b==colY.a));
