@@ -19,7 +19,7 @@ public class PrismManager : MonoBehaviour
     private GameObject prismParent;
     private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
-    private const float UPDATE_RATE = 0.001f;
+    private const float UPDATE_RATE = 0.5f;
 
     #region Unity Functions
 
@@ -221,19 +221,51 @@ public class PrismManager : MonoBehaviour
    {
        Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
        List <Vector3> points = new List <Vector3>();
-       for (int i = 0; i < prisms.Count; i++) {
+       /*for (int i = 0; i < prisms.Count; i++) {
            float[] temp=minMaxXY(prisms[i]);
-           Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
-           Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+           Vector3 min1 = new Vector3(temp[0], temp[1], temp[2]);
+           Vector3 max1 = new Vector3(temp[3], temp[4], temp[5]);
+           Vector3 min2 = new Vector3(temp[0], temp[4], temp[2]);
+           Vector3 max2 = new Vector3(temp[3], temp[1], temp[5]);
+           Vector3 min3 = new Vector3(temp[0], temp[1], temp[5]);
+           Vector3 max3 = new Vector3(temp[3], temp[4], temp[2]);
+           Vector3 min4 = new Vector3(temp[0], temp[4], temp[5]);
+           Vector3 max4 = new Vector3(temp[3], temp[1], temp[2]);
            Prism val=prisms[i];
-           dict[min] = val;
-           dict[max] = val;
-           points.Add(min);
-           points.Add(max);
-       }
-       KDTree kd = new KDTree(points, 0);
-       var collisions = new List <PrismCollision> ();
-       var activeList = new List <Prism> ();
+           dict[min1] = val;
+           dict[max1] = val;
+           dict[min2] = val;
+           dict[max2] = val;
+           dict[min3] = val;
+           dict[max3] = val;
+           dict[min4] = val;
+           dict[max4] = val;
+           points.Add(min1);
+           points.Add(max1);
+           points.Add(min2);
+           points.Add(max2);
+           points.Add(min3);
+           points.Add(max3);
+           points.Add(min4);
+           points.Add(max4);
+       }*/
+       for (int i = 0; i < prisms.Count; i++) {
+            float[] temp=minMaxXY(prisms[i]);
+            Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
+            Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+            Prism val=prisms[i];
+            dict[min] = val;
+            dict[max] = val;
+            points.Add(min);
+            points.Add(max);
+            for(int j = 0; j < prisms[i].points.Length; j++){
+                points.Add(prisms[i].points[j]);
+                dict[prisms[i].points[j]] = prisms[i];
+            }
+        }
+      KDTree kd = new KDTree(points, 0);
+      var collisions = new List <PrismCollision> ();
+      var activeList = new List <Prism> ();
       traverseTree(kd, activeList, dict, collisions);
       for(int i = 0; i < collisions.Count; i++){
           yield return collisions[i];
@@ -256,8 +288,8 @@ public class PrismManager : MonoBehaviour
            Color c=UnityEngine.Random.ColorHSV();
            Color d=UnityEngine.Random.ColorHSV();
            for (int j = index+1; j < activeList.Count; j++){
-               DrawBBox(p,c);
-               DrawBBox(activeList[j],d);
+               //DrawBBox(p,c);
+               //DrawBBox(activeList[j],c);
                PrismCollision coll = new PrismCollision();
                coll.a=p;
                coll.b=activeList[j];
@@ -462,6 +494,7 @@ public class PrismManager : MonoBehaviour
         Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
         if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance){
             return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
+            //return new_depth_vector;
         }
         depth_vector = new_depth_vector;
         Vector3 w = getSupportingPoint(MKDiffPoints, depth_vector);
@@ -733,7 +766,10 @@ public class PrismManager : MonoBehaviour
     	Vector3 ao =   - a;
 
     	if (SameDirection(ab, ao)) {
-    		direction = ao;
+
+    		//direction = ao;
+        //Debug.Log("AO IS "+ao+" AB IS "+ab+" BROKEN CROSS PRODUCT IS + "+ cross(cross(ab,ao),ab));
+        direction = cross(cross(ab,ao),ab);
     	}
     	else {
         List<Vector3> temp= new List<Vector3>();
@@ -755,12 +791,14 @@ public class PrismManager : MonoBehaviour
     	Vector3 abc = cross(ab,ac);
 
     	if (SameDirection(cross(abc,ac),ao)) {
+      //if (SameDirection(new Vector3(ac.z , 0 , -ac.x),ao)) {
     		if (SameDirection(ac, ao)) {
           List<Vector3> temp= new List<Vector3>();
           temp.Add(a);
           temp.Add(c);
       		points = temp;
     			direction = cross(cross(ac,ao),ac);
+          //direction=new Vector3(-ac.z, 0 , ac.x);
           //direction=ac;
     		}
 
@@ -774,7 +812,8 @@ public class PrismManager : MonoBehaviour
     	}
 
     	else {
-    		if (SameDirection(cross(abc,ab), ao)) {
+        if (SameDirection(cross(ab,abc),ao)) {
+    		//if (SameDirection(new Vector3(-ab.z, 0, ab.x), ao)) {
           List<Vector3> temp= new List<Vector3>();
           temp.Add(a);
           temp.Add(b);
