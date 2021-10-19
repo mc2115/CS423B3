@@ -19,7 +19,7 @@ public class PrismManager : MonoBehaviour
     private GameObject prismParent;
     private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
-    private const float UPDATE_RATE = 0.1f;
+    private const float UPDATE_RATE = 0.001f;
 
     #region Unity Functions
 
@@ -109,7 +109,7 @@ public class PrismManager : MonoBehaviour
 
     #region Incomplete Functions
 
-    private IEnumerable<PrismCollision> PotentialCollisions()
+    private IEnumerable<PrismCollision> PotentialCollisions1()
     {
         Dictionary<float, Prism> dictX=new Dictionary<float, Prism>();
         Dictionary<float, Prism> dictY=new Dictionary<float, Prism>();
@@ -217,6 +217,69 @@ public class PrismManager : MonoBehaviour
         }
         yield break;
     }
+    private IEnumerable<PrismCollision> PotentialCollisions()
+   {
+       Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
+       List <Vector3> points = new List <Vector3>();
+       for (int i = 0; i < prisms.Count; i++) {
+           float[] temp=minMaxXY(prisms[i]);
+           Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
+           Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+           Prism val=prisms[i];
+           dict[min] = val;
+           dict[max] = val;
+           points.Add(min);
+           points.Add(max);
+       }
+       KDTree kd = new KDTree(points, 0);
+       var collisions = new List <PrismCollision> ();
+       var activeList = new List <Prism> ();
+      traverseTree(kd, activeList, dict, collisions);
+      for(int i = 0; i < collisions.Count; i++){
+          yield return collisions[i];
+      }
+   }
+
+   private void traverseTree(KDTree root, List <Prism> activeList, Dictionary <Vector3, Prism> dict, List<PrismCollision> collisions){
+       if (root == null){
+           //Debug.Log("xD");
+           return;
+       }
+
+       if(root.leftChild != null){
+           traverseTree(root.leftChild, activeList, dict, collisions);
+       }
+       //Debug.Log("root: " + root.location);
+       Prism p = dict[root.location];
+       if(activeList.Contains(p)){
+           int index = activeList.IndexOf(p);
+           Color c=UnityEngine.Random.ColorHSV();
+           Color d=UnityEngine.Random.ColorHSV();
+           for (int j = index+1; j < activeList.Count; j++){
+               DrawBBox(p,c);
+               DrawBBox(activeList[j],d);
+               PrismCollision coll = new PrismCollision();
+               coll.a=p;
+               coll.b=activeList[j];
+               //Debug.Log("collision");
+               collisions.Add(coll);
+           }
+       }
+       else{
+           activeList.Add(p);
+           //Debug.Log("added prism");
+       }
+       if(root.rightChild != null){
+           traverseTree(root.rightChild, activeList, dict, collisions);
+       }
+   }
+   private void DrawBBox(Prism a, Color c){
+     float[] temp=minMaxXY(a);
+     Debug.DrawLine(new Vector3(temp[0], 0, temp[2]), new Vector3(temp[0],0,temp[5]),c);
+     Debug.DrawLine(new Vector3(temp[0], 0, temp[5]), new Vector3(temp[3],0,temp[5]),c);
+     Debug.DrawLine(new Vector3(temp[3], 0, temp[5]), new Vector3(temp[3],0,temp[2]),c);
+     Debug.DrawLine(new Vector3(temp[3], 0, temp[2]), new Vector3(temp[0],0,temp[2]),c);
+   }
     private bool collEquals(PrismCollision colX, PrismCollision colY){
       return ((colX.a==colY.a && colX.b==colY.b)||(colX.a==colY.b && colX.b==colY.a));
     }
@@ -344,33 +407,68 @@ public class PrismManager : MonoBehaviour
           }
         }
         if (isCollision == false){
+            //Debug.Log("HAHAHA");
             penetration_depth_vector = Vector3.zero;
         } else {
-            if (maxPrismScaleY==0){
-              penetration_depth_vector=EPA2D(Simplex,MKDiffPoints);
-            } else {
-              penetration_depth_vector=EPA3D(Simplex,MKDiffPoints);
-            }
-            Debug.Log("VECTOR IS "+penetration_depth_vector+" BETWEEN "+collision.a.prismObject.name+" AND "+collision.b.prismObject.name);
+            penetration_depth_vector=EPA(Simplex,MKDiffPoints);
+            //Debug.Log("VECTOR IS "+penetration_depth_vector+" BETWEEN "+collision.a.prismObject.name+" AND "+collision.b.prismObject.name);
         }
 
         collision.penetrationDepthVectorAB=penetration_depth_vector;
         return isCollision ;
     }
-  Vector3 EPA2D(List<Vector3> expandingPolygon, Vector3[] MKDiffPoints) {
+    /*Vector3 EPA2D1(List<Vector3> polytope, Vector3[] diff) {
+    	int minIndex = 0;
+    	float minDistance = float.MaxValue;
+    	Vector3 minNormal=Vector3.zero;
+
+    	while (minDistance == float.MaxValue) {
+    		for (int i = 0; i < polytope.Count; i++) {
+    			int j = (i+1) % polytope.Count;
+
+    			Vector3 vertexI = polytope[i];
+    			Vector3 vertexJ = polytope[j];
+
+    			Vector3 ij = vertexJ-vertexI;
+
+    			Vector3 normal = new Vector3(ij.z, 0 ,-ij.x);
+    			float distance = Dot(normal, vertexI);
+
+    			if (distance < 0) {
+    				distance *= -1;
+    				normal*=-1;
+    			}
+    			if (distance < minDistance) {
+    				minDistance = distance;
+    				minNormal = normal;
+    				minIndex = j;
+            //Debug.Log("minDistance "+minDistance+" minNormal "+minNormal+" minIndex "+minIndex);
+    			}
+    		}
+        Vector3 support = getSupportingPoint(diff, minNormal);
+    		float sDistance = Dot(minNormal, support);
+
+    		if(Math.Abs(sDistance - minDistance) > 0.00001) {
+    		 	minDistance = float.MaxValue;
+    			polytope.Insert(minIndex,support);
+    		}
+    	}
+    	return minNormal;
+    }*/
+  Vector3 EPA(List<Vector3> expandingPolygon, Vector3[] MKDiffPoints) {
     float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
     Vector3 depth_vector = Vector3.zero;
     while (true){
         Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
         if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance){
-            return new_depth_vector*(1.0001f);
+            return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
         }
         depth_vector = new_depth_vector;
         Vector3 w = getSupportingPoint(MKDiffPoints, depth_vector);
         expandingPolygon.Add(w);
       }
   }
-    Vector3 EPA3D(List<Vector3> simplex, Vector3[] diff){
+  /*  Vector3 EPA3D(List<Vector3> simplex, Vector3[] diff){
     	List<Vector3> polytope=simplex;
     	List<float>  faces = new List<float>() {0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2};
       ArrayList temp=GetFaceNormals(polytope, faces);
@@ -439,7 +537,8 @@ public class PrismManager : MonoBehaviour
       		}
       	}
       //Debug.Log("minNormal is " + minNormal);
-      return minNormal*(1.0001f);
+      return minNormal*(minDistance);
+      //return getSupportingPoint(diff, minNormal);
     }
     ArrayList GetFaceNormals(List<Vector3> polytope, List<float>  faces)
     {
@@ -453,6 +552,7 @@ public class PrismManager : MonoBehaviour
     		Vector3 b = polytope[(int) faces[i + 1]];
     		Vector3 c = polytope[(int) faces[i + 2]];
     		Vector3 normal = cross((b - a),(c - a)).normalized;
+        //Vector3 normal = FindClosestPointFromOrigin(new Vector3[] {(a),(b),(c)});
     		float distance = Dot(normal, a);
 
     		if (distance < 0) {
@@ -487,7 +587,7 @@ public class PrismManager : MonoBehaviour
       } else {
         edges.Add(new Vector2(faces[a], faces[b]));
       }
-    }
+    }*/
     bool NextSimplex( ref List<Vector3> points,	ref Vector3 direction){
     	switch (points.Count()) {
     		case 2: return Line       (ref points, ref direction);
@@ -963,6 +1063,136 @@ public class PrismManager : MonoBehaviour
             this.a = a;
             this.b = b;
 
+        }
+    }
+    private class KDTree
+    {
+        public Vector3 location;
+        public KDTree leftChild;
+        public KDTree rightChild;
+
+        public KDTree(List<Vector3> points, int depth){
+            List <Vector3> temp = points;
+            int axis = depth%3;
+            if(points.Count == 0){
+                return;
+            }
+            sortVector(temp, 0, temp.Count-1, axis);
+            int median = temp.Count/2;
+            this.location = temp[median];
+            //Debug.Log("Location " + temp[median]);
+            for(int i = 0; i < temp.Count; i++){
+                //Debug.Log("Adding " + temp[i]);
+            }
+            List <Vector3> left = new List <Vector3> ();
+            List <Vector3> right = new List <Vector3> ();
+            splitList(temp, left, right);
+            for(int i = 0; i < left.Count; i++){
+                //Debug.Log("Adding Left" + left[i]);
+            }
+            for(int i = 0; i < right.Count; i++){
+                //Debug.Log("Adding Right" + right[i]);
+            }
+            if(left.Count > 0){
+                this.leftChild = new KDTree(left, depth+1);
+            }
+            if(right.Count > 0){
+                this.rightChild = new KDTree(right, depth+1);
+            }
+
+        }
+
+        public void splitList(List<Vector3> points, List<Vector3> left, List<Vector3> right){
+            int median = points.Count/2;
+            for(int i = 0; i < median; i++){
+                left.Add(points[i]);
+            }
+            for(int i = median+1; i < points.Count; i++){
+                right.Add(points[i]);
+            }
+        }
+
+        public void mergeVector(List<Vector3> p, int l, int m, int r, int dim){
+            int n1 = m - l + 1;
+            int n2 = r - m;
+            // Create temp arrays
+            Vector3[] L = new Vector3[n1];
+            Vector3[] R = new Vector3[n2];
+            int i, j;
+
+            // Copy data to temp arrays
+            for (i = 0; i < n1; ++i)
+                L[i] =  p[l + i];
+            for (j = 0; j < n2; ++j)
+                R[j] = p[m + 1 + j];
+
+            i = 0;
+            j = 0;
+
+            int k = l;
+            while (i < n1 && j < n2) {
+                if(dim == 0){
+                    if (L[i].x<= R[j].x) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+                else if (dim == 1){
+                    if (L[i].y<= R[j].y) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+                else if (dim == 2){
+                    if (L[i].z<= R[j].z) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+            }
+
+            while (i < n1) {
+                p[k] = L[i];
+                i++;
+                k++;
+            }
+
+            while (j < n2) {
+                p[k] = R[j];
+                j++;
+                k++;
+            }
+        }
+
+        public void sortVector(List<Vector3> p, int l, int r, int dim){
+            if (l < r) {
+                // Find the middle
+                // point
+                int m = l+ (r-l)/2;
+
+                // Sort first and
+                // second halves
+                sortVector(p, l, m, dim);
+                sortVector(p, m + 1, r, dim);
+
+                // Merge the sorted halves
+                mergeVector(p, l, m, r, dim);
+            }
         }
     }
     #endregion
