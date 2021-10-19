@@ -19,7 +19,7 @@ public class PrismManager : MonoBehaviour
     private GameObject prismParent;
     private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
-    private const float UPDATE_RATE = 0.5f;
+    private const float UPDATE_RATE = 0.1f;
 
     #region Unity Functions
 
@@ -494,7 +494,7 @@ public class PrismManager : MonoBehaviour
         Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
         if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance){
             //return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
-            return new_depth_vector;
+            return new_depth_vector*(1.0001f);
         }
         depth_vector = new_depth_vector;
         Vector3 w = getSupportingPoint(MKDiffPoints, depth_vector);
