@@ -203,7 +203,7 @@ public class PrismManager : MonoBehaviour
             for (int j=0; j<collisionsZ.Count; j++){
               PrismCollision colZ=collisionsZ[j];
               if (collEquals(colX, colZ)){
-                Debug.Log("Collision!");
+                //Debug.Log("Collision!");
                 yield return colX;
               }
             }
@@ -231,22 +231,27 @@ public class PrismManager : MonoBehaviour
        Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
        List <Vector3> points = new List <Vector3>();
        for (int i = 0; i < prisms.Count; i++) {
-           float[] temp=minMaxXY(prisms[i]);
+           /*float[] temp=minMaxXY(prisms[i]);
            Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
            Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
            Prism val=prisms[i];
            dict[min] = val;
            dict[max] = val;
            points.Add(min);
-           points.Add(max);
+           points.Add(max);*/
+           for(int j = 0; j < prisms[i].points.Length; j++){
+               points.Add(prisms[i].points[j]);
+               dict[prisms[i].points[j]] = prisms[i];
+           }
        }
-       KDTree kd = new KDTree(points, 0);
+       KDTree kd = new KDTree(points, 0, maxPrismScaleY);
        var collisions = new List <PrismCollision> ();
        var activeList = new List <Prism> ();
-      traverseTree(kd, activeList, dict, collisions);
-      for(int i = 0; i < collisions.Count; i++){
+       //Debug.Log("Traversing Tree");
+       traverseTree(kd, activeList, dict, collisions);
+       for(int i = 0; i < collisions.Count; i++){    
           yield return collisions[i];
-      }
+       }
    }
 
    private void traverseTree(KDTree root, List <Prism> activeList, Dictionary <Vector3, Prism> dict, List<PrismCollision> collisions){
@@ -258,15 +263,19 @@ public class PrismManager : MonoBehaviour
        if(root.leftChild != null){
            traverseTree(root.leftChild, activeList, dict, collisions);
        }
+       if(root.rightChild != null){
+           traverseTree(root.rightChild, activeList, dict, collisions);
+       }
        //Debug.Log("root: " + root.location);
        Prism p = dict[root.location];
        if(activeList.Contains(p)){
+           //Debug.Log(activeList.Count);
            int index = activeList.IndexOf(p);
            Color c=UnityEngine.Random.ColorHSV();
            Color d=UnityEngine.Random.ColorHSV();
            for (int j = index+1; j < activeList.Count; j++){
-               DrawBBox(p,c);
-               DrawBBox(activeList[j],d);
+               //DrawBBox(p,c);
+               //DrawBBox(activeList[j],d);
                PrismCollision coll = new PrismCollision();
                coll.a=p;
                coll.b=activeList[j];
@@ -278,9 +287,7 @@ public class PrismManager : MonoBehaviour
            activeList.Add(p);
            //Debug.Log("added prism");
        }
-       if(root.rightChild != null){
-           traverseTree(root.rightChild, activeList, dict, collisions);
-       }
+
    }
    private void DrawBBox(Prism a, Color c){
      float[] temp=minMaxXY(a);
@@ -395,7 +402,7 @@ public class PrismManager : MonoBehaviour
           w=getSupportingPoint(MKDiffPoints, v);
           if (Dot(w,v)<=0) break;
           Simplex.Add(w);
-          if (NextSimplex(Simplex,v)) {
+          if (NextSimplex(ref Simplex,ref v)) {
 			       isCollision=true;
              break;
 		      }
@@ -409,7 +416,7 @@ public class PrismManager : MonoBehaviour
         }
 
         collision.penetrationDepthVectorAB=penetration_depth_vector;
-        Debug.Log(collision.penetrationDepthVectorAB);
+        //Debug.Log(collision.penetrationDepthVectorAB);
         return isCollision ;
     }
     /*Vector3 EPA2D1(List<Vector3> polytope, Vector3[] diff) {
@@ -866,7 +873,7 @@ public class PrismManager : MonoBehaviour
     {
         var prismObjA = collision.a.prismObject;
         var prismObjB = collision.b.prismObject;
-        Debug.Log(collision.penetrationDepthVectorAB);
+        //Debug.Log(collision.penetrationDepthVectorAB);
         var pushA = -collision.penetrationDepthVectorAB / 2;
         var pushB = collision.penetrationDepthVectorAB / 2;
 
@@ -984,9 +991,13 @@ public class PrismManager : MonoBehaviour
         public KDTree leftChild;
         public KDTree rightChild;
 
-        public KDTree(List<Vector3> points, int depth){
+        public KDTree(List<Vector3> points, int depth, float YScale){
             List <Vector3> temp = points;
             int axis = depth%3;
+            if(YScale == 0 && axis == 1){
+                //Debug.Log("skipping y");
+                axis++;
+            }
             if(points.Count == 0){
                 return;
             }
@@ -1007,10 +1018,10 @@ public class PrismManager : MonoBehaviour
                 //Debug.Log("Adding Right" + right[i]);
             }
             if(left.Count > 0){
-                this.leftChild = new KDTree(left, depth+1);
+                this.leftChild = new KDTree(left, depth+1, YScale);
             }
             if(right.Count > 0){
-                this.rightChild = new KDTree(right, depth+1);
+                this.rightChild = new KDTree(right, depth+1, YScale);
             }
 
         }
