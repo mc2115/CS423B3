@@ -19,7 +19,7 @@ public class PrismManager : MonoBehaviour
     private GameObject prismParent;
     private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
-    private const float UPDATE_RATE = 0.5f;
+    private const float UPDATE_RATE = 0.1f;
 
     #region Unity Functions
 
@@ -109,7 +109,7 @@ public class PrismManager : MonoBehaviour
 
     #region Incomplete Functions
 
-    private IEnumerable<PrismCollision> PotentialCollisions()
+    private IEnumerable<PrismCollision> PotentialCollisions1()
     {
         Dictionary<float, Prism> dictX=new Dictionary<float, Prism>();
         Dictionary<float, Prism> dictY=new Dictionary<float, Prism>();
@@ -141,7 +141,6 @@ public class PrismManager : MonoBehaviour
         List<Prism> activeListX = new List<Prism>();
         for (int i=0; i<xcoord.Count; i++){
           Prism p= dictX[xcoord[i]];
-          //float[] temp= (float[]) dict.get(xcoord[i])[1];
           if (activeListX.Contains(p)){
             int index=activeListX.IndexOf(p);
             if (index!=activeListX.Count-1){
@@ -156,13 +155,10 @@ public class PrismManager : MonoBehaviour
             activeListX.Add(p);
           }
         }
-        //Debug.Log(ycoord);
         var collisionsY= new List<PrismCollision>();
         List<Prism> activeListY = new List<Prism>();
         for (int i=0; i<ycoord.Count; i++){
-
           Prism p=dictY[ycoord[i]];
-          //float[] temp= (float[]) dict.get(ycoord[i])[1];
           if (activeListY.Contains(p)){
             int index=activeListY.IndexOf(p);
             if (index!=activeListY.Count-1){
@@ -181,7 +177,6 @@ public class PrismManager : MonoBehaviour
         List<Prism> activeListZ = new List<Prism>();
         for (int i=0; i<zcoord.Count; i++){
           Prism p=dictZ[zcoord[i]];
-          //float[] temp= (float[]) dict.get(ycoord[i])[1];
           if (activeListZ.Contains(p)){
             int index=activeListZ.IndexOf(p);
             if (index!=activeListZ.Count-1){
@@ -196,14 +191,12 @@ public class PrismManager : MonoBehaviour
             activeListZ.Add(p);
           }
         }
-        //Debug.Log(collisionsX.Count+" "+collisionsY.Count+" "+collisionsZ.Count);
         if (collisionsY.Count==0){
           for (int i=0; i<collisionsX.Count; i++){
             PrismCollision colX=collisionsX[i];
             for (int j=0; j<collisionsZ.Count; j++){
               PrismCollision colZ=collisionsZ[j];
               if (collEquals(colX, colZ)){
-                Debug.Log("Collision!");
                 yield return colX;
               }
             }
@@ -215,9 +208,7 @@ public class PrismManager : MonoBehaviour
               PrismCollision colY=collisionsY[j];
               for (int k=0; k<collisionsZ.Count; k++){
                 PrismCollision colZ=collisionsZ[k];
-                //Debug.Log(colX.a.name+" "+colX.b.name+" "+colY.a.name+" "+colY.b.name+" "+colZ.a.name+" "+colZ.b.name+" ");
                 if (collEquals(colX, colY)&& collEquals (colY, colZ)){
-                  //Debug.Log("Collision!");
                   yield return colX;
                 }
               }
@@ -226,8 +217,102 @@ public class PrismManager : MonoBehaviour
         }
         yield break;
     }
+    private IEnumerable<PrismCollision> PotentialCollisions()
+   {
+       Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
+       List <Vector3> points = new List <Vector3>();
+       for (int i = 0; i < prisms.Count; i++) {
+           float[] temp=minMaxXY(prisms[i]);
+           Vector3 min1 = new Vector3(temp[0], temp[1], temp[2]);
+           Vector3 max1 = new Vector3(temp[3], temp[4], temp[5]);
+           Vector3 min2 = new Vector3(temp[0], temp[4], temp[2]);
+           Vector3 max2 = new Vector3(temp[3], temp[1], temp[5]);
+           Vector3 min3 = new Vector3(temp[0], temp[1], temp[5]);
+           Vector3 max3 = new Vector3(temp[3], temp[4], temp[2]);
+           Vector3 min4 = new Vector3(temp[0], temp[4], temp[5]);
+           Vector3 max4 = new Vector3(temp[3], temp[1], temp[2]);
+           Prism val=prisms[i];
+           dict[min1] = val;
+           dict[max1] = val;
+           dict[min2] = val;
+           dict[max2] = val;
+           dict[min3] = val;
+           dict[max3] = val;
+           dict[min4] = val;
+           dict[max4] = val;
+           points.Add(min1);
+           points.Add(max1);
+           points.Add(min2);
+           points.Add(max2);
+           points.Add(min3);
+           points.Add(max3);
+           points.Add(min4);
+           points.Add(max4);
+       }
+       /*for (int i = 0; i < prisms.Count; i++) {
+            float[] temp=minMaxXY(prisms[i]);
+            //Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
+            //Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+            Prism val=prisms[i];
+            dict[min] = val;
+            dict[max] = val;
+            //points.Add(min);
+            //points.Add(max);
+            for(int j = 0; j < prisms[i].points.Length; j++){
+                points.Add(prisms[i].points[j]);
+                dict[prisms[i].points[j]] = prisms[i];
+            }
+        }*/
+      KDTree kd = new KDTree(points, 0);
+      var collisions = new List <PrismCollision> ();
+      var activeList = new List <Prism> ();
+      traverseTree(kd, activeList, dict, collisions);
+      for(int i = 0; i < collisions.Count; i++){
+          yield return collisions[i];
+      }
+   }
+
+   private void traverseTree(KDTree root, List <Prism> activeList, Dictionary <Vector3, Prism> dict, List<PrismCollision> collisions){
+       if (root == null){
+           //Debug.Log("xD");
+           return;
+       }
+
+       if(root.leftChild != null){
+           traverseTree(root.leftChild, activeList, dict, collisions);
+       }
+       //Debug.Log("root: " + root.location);
+       Prism p = dict[root.location];
+       if(activeList.Contains(p)){
+           int index = activeList.IndexOf(p);
+           Color c=UnityEngine.Random.ColorHSV();
+           Color d=UnityEngine.Random.ColorHSV();
+           for (int j = index+1; j < activeList.Count; j++){
+               //DrawBBox(p,c);
+               //DrawBBox(activeList[j],c);
+               PrismCollision coll = new PrismCollision();
+               coll.a=p;
+               coll.b=activeList[j];
+               //Debug.Log("collision");
+               collisions.Add(coll);
+           }
+       }
+       else{
+           activeList.Add(p);
+           //Debug.Log("added prism");
+       }
+       if(root.rightChild != null){
+           traverseTree(root.rightChild, activeList, dict, collisions);
+       }
+   }
+   private void DrawBBox(Prism a, Color c){
+     float[] temp=minMaxXY(a);
+     Debug.DrawLine(new Vector3(temp[0], 0, temp[2]), new Vector3(temp[0],0,temp[5]),c);
+     Debug.DrawLine(new Vector3(temp[0], 0, temp[5]), new Vector3(temp[3],0,temp[5]),c);
+     Debug.DrawLine(new Vector3(temp[3], 0, temp[5]), new Vector3(temp[3],0,temp[2]),c);
+     Debug.DrawLine(new Vector3(temp[3], 0, temp[2]), new Vector3(temp[0],0,temp[2]),c);
+   }
     private bool collEquals(PrismCollision colX, PrismCollision colY){
-      //Debug.Log("Collision?");
       return ((colX.a==colY.a && colX.b==colY.b)||(colX.a==colY.b && colX.b==colY.a));
     }
 
@@ -240,7 +325,6 @@ public class PrismManager : MonoBehaviour
       float maxZ=int.MinValue;
       for (int i=0; i<p.points.Length; i++){
         Vector3 use=p.points[i];
-        //Debug.Log(p.name+" "+use.y);
         float valX=use.x;
         float valY=use.y;
         float valZ=use.z;
@@ -251,8 +335,9 @@ public class PrismManager : MonoBehaviour
         if (valY>maxY) maxY=valY;
         if (valZ>maxZ) maxZ=valZ;
       }
-      //Debug.Log("Name "+p.name+" minX "+minX+" minY "+minY+" maxX "+ maxX+" maxY "+maxY+" minZ "+ minZ+" maxZ "+maxZ);
-      return new float[]{minX,minY-p.height,minZ,maxX,maxY+p.height,maxZ};
+      //Debug.Log("prism "+p.prismObject+" height "+p.height / 2 * p.transform.localScale.y);
+      //return new float[]{minX-(UnityEngine.Random.value * 0.00001f),minY-p.height / 2 * Math.Abs(p.transform.localScale.y),minZ-(UnityEngine.Random.value * 0.00001f),maxX+(UnityEngine.Random.value * 0.00001f),maxY+p.height / 2 * Math.Abs(p.transform.localScale.y), maxZ+(UnityEngine.Random.value * 0.00001f)};
+      return new float[]{minX,minY-p.height / 2 * Math.Abs(p.transform.localScale.y),minZ,maxX,maxY+p.height / 2 * Math.Abs(p.transform.localScale.y), maxZ};
     }
     public void merge(List<float> p, int l, int m, int r){
         int n1 = m - l + 1;
@@ -477,73 +562,228 @@ public class PrismManager : MonoBehaviour
     }
     private bool CheckCollision(PrismCollision collision)
     {
-        float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
+
         bool isCollision = false;
         Vector3 penetration_depth_vector = Vector3.zero;
         Prism prismA = collision.a;
         Prism prismB = collision.b;
         Vector3[] MKDiffPoints = MKDiff(prismA, prismB);
         List<Vector3> Simplex = new List<Vector3>();
-
         Vector3 w = MKDiffPoints[0];
-
-        w = getSupportingPoint(MKDiffPoints, w);
+        w = getSupportingPoint(MKDiffPoints, Vector3.right);
         Simplex.Add(w);
         Vector3 v = -w;
         while (true){
           w=getSupportingPoint(MKDiffPoints, v);
           if (Dot(w,v)<=0) break;
-          Simplex.Add(w);
-          if (NextSimplex(Simplex,v)) {
-			       isCollision=true;
-             break;
-		      }
+          Simplex.Insert(0,w);
+          if (maxPrismScaleY==0){
+            if (NextSimplex2D(ref Simplex, ref v)) {
+  			       isCollision=true;
+               break;
+  		      }
+          } else {
+            if (NextSimplex(ref Simplex, ref v)) {
+  			       isCollision=true;
+               break;
+  		      }
+          }
         }
-
-        if (isCollision == false)
-        {
-            Debug.Log("PRANKED XD");
+        if (isCollision == false){
+            //Debug.Log("HAHAHA");
             penetration_depth_vector = Vector3.zero;
-        }
-        else
-        {
-            List<Vector3> expandingPolygon = Simplex;
-            Vector3 depth_vector = Vector3.zero;
-
-            while (true)
-            {
-                Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
-                Debug.Log("new vector "+new_depth_vector );
-                if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance)
-                {
-                    penetration_depth_vector = new_depth_vector;
-                    break;
-                }
-                depth_vector = new_depth_vector;
-                w = getSupportingPoint(MKDiffPoints, depth_vector);
-                expandingPolygon.Add(w);
-            }
+        } else {
+            penetration_depth_vector=EPA(Simplex,MKDiffPoints);
+            //Debug.Log("VECTOR IS "+penetration_depth_vector+" BETWEEN "+collision.a.prismObject.name+" AND "+collision.b.prismObject.name);
         }
 
         collision.penetrationDepthVectorAB=penetration_depth_vector;
-        Debug.Log(collision.penetrationDepthVectorAB);
         return isCollision ;
     }
+    /*Vector3 EPA2D1(List<Vector3> polytope, Vector3[] diff) {
+    	int minIndex = 0;
+    	float minDistance = float.MaxValue;
+    	Vector3 minNormal=Vector3.zero;
 
-    bool NextSimplex( List<Vector3> points,	Vector3 direction){
-    	switch (points.Count()) {
-    		case 2: return Line       (points, direction);
-    		case 3: return Triangle   (points, direction);
-    		case 4: return Tetrahedron(points, direction);
+    	while (minDistance == float.MaxValue) {
+    		for (int i = 0; i < polytope.Count; i++) {
+    			int j = (i+1) % polytope.Count;
+
+    			Vector3 vertexI = polytope[i];
+    			Vector3 vertexJ = polytope[j];
+
+    			Vector3 ij = vertexJ-vertexI;
+
+    			Vector3 normal = new Vector3(ij.z, 0 ,-ij.x);
+    			float distance = Dot(normal, vertexI);
+
+    			if (distance < 0) {
+    				distance *= -1;
+    				normal*=-1;
+    			}
+    			if (distance < minDistance) {
+    				minDistance = distance;
+    				minNormal = normal;
+    				minIndex = j;
+            //Debug.Log("minDistance "+minDistance+" minNormal "+minNormal+" minIndex "+minIndex);
+    			}
+    		}
+        Vector3 support = getSupportingPoint(diff, minNormal);
+    		float sDistance = Dot(minNormal, support);
+
+    		if(Math.Abs(sDistance - minDistance) > 0.00001) {
+    		 	minDistance = float.MaxValue;
+    			polytope.Insert(minIndex,support);
+    		}
     	}
+    	return minNormal;
+    }*/
+  Vector3 EPA(List<Vector3> expandingPolygon, Vector3[] MKDiffPoints) {
+    float tolerance = (float) Math.Pow(10,-5); //10 to the power of -5
+    Vector3 depth_vector = Vector3.zero;
+    while (true){
+        Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
+        if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance){
+            //return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
+            return new_depth_vector*(1.0001f);
+        }
+        depth_vector = new_depth_vector;
+        Vector3 w = getSupportingPoint(MKDiffPoints, depth_vector);
+        expandingPolygon.Add(w);
+      }
+  }
+  /*  Vector3 EPA3D(List<Vector3> simplex, Vector3[] diff){
+    	List<Vector3> polytope=simplex;
+    	List<float>  faces = new List<float>() {0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2};
+      ArrayList temp=GetFaceNormals(polytope, faces);
+      List<Vector3> normals_vec=(List<Vector3>) temp[0];
+      List<float> normals_dis=(List<float>) temp[1];
+      int minFace=(int) temp[2];
+      Vector3 minNormal=normals_vec[minFace];
+    	float   minDistance = float.MaxValue;
+    	while (minDistance == float.MaxValue) {
+    		minNormal  = normals_vec[minFace];
+    		minDistance = normals_dis[minFace];
+        //Debug.Log("calculating minNormal is " + minNormal+" minDistance " + minDistance);
+    		Vector3 support = getSupportingPoint(diff, minNormal);
+    		float sDistance = Dot(minNormal,support);
+    		if (Math.Abs(sDistance - minDistance) > 0.00001f) {
+    			minDistance = float.MaxValue;
+          List<Vector2> uniqueEdges=new List<Vector2>();
+      			for (int i = 0; i < normals_vec.Count; i++) {
+      				if (SameDirection(normals_vec[i], support)) {
+      					int f = i * 3;
+      					AddIfUniqueEdge(uniqueEdges, faces, f,     f + 1);
+      					AddIfUniqueEdge(uniqueEdges, faces, f + 1, f + 2);
+      					AddIfUniqueEdge(uniqueEdges, faces, f + 2, f    );
+      					faces[f + 2] = faces.Last(); faces.RemoveAt(faces.Count-1);
+      					faces[f + 1] = faces.Last(); faces.RemoveAt(faces.Count-1);
+      					faces[f    ] = faces.Last(); faces.RemoveAt(faces.Count-1);
 
-    	// never should be here
+                normals_vec[i]=normals_vec.Last(); normals_vec.RemoveAt(normals_vec.Count-1);
+                normals_dis[i]=normals_dis.Last(); normals_dis.RemoveAt(normals_dis.Count-1);
+      					i--;
+      				}
+      			}
+            List<float> newFaces=new List<float>();
+      			for (int j=0; j<uniqueEdges.Count; j++) {
+              Vector2 tempV=uniqueEdges[j];
+              float edgeIndex1=tempV.x;
+              float edgeIndex2=tempV.y;
+      				newFaces.Add(edgeIndex1);
+      				newFaces.Add(edgeIndex2);
+      				newFaces.Add(polytope.Count);
+      			}
+  			    polytope.Add(support);
+            ArrayList tempN=GetFaceNormals(polytope, newFaces);
+            List<Vector3> normals_vecN=(List<Vector3>) tempN[0];
+            List<float> normals_disN=(List<float>) tempN[1];
+            int newMinFace=(int) tempN[2];
+            float oldMinDistance = float.MaxValue;
+      			for (int i = 0; i < normals_vecN.Count; i++) {
+      				if (normals_disN[i] < oldMinDistance) {
+      					oldMinDistance = normals_disN[i];
+      					minFace = i;
+      				}
+      			}
+      			if (normals_disN[newMinFace] < oldMinDistance) {
+      				minFace = newMinFace + normals_dis.Count;
+      			}
+            for (int j=0; j<newFaces.Count; j++){
+              faces.Add(newFaces[j]);
+            }
+            for (int j=0; j<normals_vecN.Count; j++){
+              normals_vec.Add(normals_vecN[j]);
+            }
+            for (int j=0; j<normals_disN.Count; j++){
+              normals_dis.Add(normals_disN[j]);
+            }
+      		}
+      	}
+      //Debug.Log("minNormal is " + minNormal);
+      return minNormal*(minDistance);
+      //return getSupportingPoint(diff, minNormal);
+    }
+    ArrayList GetFaceNormals(List<Vector3> polytope, List<float>  faces)
+    {
+    	List<Vector3> normal_vec=new List<Vector3>();
+      List<float> normal_dis=new List<float>();
+    	int minTriangle = 0;
+    	float  minDistance = float.MaxValue;
+
+    	for (int i = 0; i < faces.Count; i += 3) {
+    		Vector3 a = polytope[(int) faces[i    ]];
+    		Vector3 b = polytope[(int) faces[i + 1]];
+    		Vector3 c = polytope[(int) faces[i + 2]];
+    		Vector3 normal = cross((b - a),(c - a)).normalized;
+        //Vector3 normal = FindClosestPointFromOrigin(new Vector3[] {(a),(b),(c)});
+    		float distance = Dot(normal, a);
+
+    		if (distance < 0) {
+    			normal   *= -1;
+    			distance *= -1;
+    		}
+    		normal_vec.Add(normal);
+        normal_dis.Add(distance);
+
+    		if (distance < minDistance) {
+    			minTriangle = i / 3;
+    			minDistance = distance;
+    		}
+    	}
+      ArrayList temp=new ArrayList();
+      temp.Add(normal_vec);
+      temp.Add(normal_dis);
+      temp.Add(minTriangle);
+    	return temp;
+    }
+    void AddIfUniqueEdge(List<Vector2> edges, List<float> faces, int a, int b)
+    {
+      Vector2 search=new Vector2(faces[b], faces[a]);
+      int look=edges.IndexOf(search);
+      if (look!=-1){
+        Vector2 reverse = edges[look];
+      	if (reverse != edges[edges.Count-1]) {
+      		edges.RemoveAt(look);
+      	} else {
+      		edges.Add(new Vector2(faces[a], faces[b]));
+      	}
+      } else {
+        edges.Add(new Vector2(faces[a], faces[b]));
+      }
+    }*/
+    bool NextSimplex( ref List<Vector3> points,	ref Vector3 direction){
+    	switch (points.Count()) {
+    		case 2: return Line       (ref points, ref direction);
+    		case 3: return Triangle   (ref points, ref direction);
+    		case 4: return Tetrahedron(ref points, ref direction);
+    	}
     	return false;
     }
     bool SameDirection(Vector3 direction, Vector3 ao){
     	return Dot(direction, ao) > 0;
     }
-    bool Line(List<Vector3> points,	Vector3 direction){
+    bool Line(ref List<Vector3> points,	ref Vector3 direction){
     	Vector3 a = points[0];
     	Vector3 b = points[1];
 
@@ -561,7 +801,7 @@ public class PrismManager : MonoBehaviour
     	}
     	return false;
     }
-    bool Triangle(List<Vector3> points,	Vector3 direction){
+    bool Triangle(ref List<Vector3> points,	ref Vector3 direction){
       Vector3 a = points[0];
     	Vector3 b = points[1];
     	Vector3 c = points[2];
@@ -586,7 +826,7 @@ public class PrismManager : MonoBehaviour
           temp.Add(a);
           temp.Add(b);
       		points = temp;
-    			return Line(points , direction);
+    			return Line(ref points , ref direction);
     		}
     	}
 
@@ -596,7 +836,7 @@ public class PrismManager : MonoBehaviour
           temp.Add(a);
           temp.Add(b);
       		points = temp;
-    			return Line(points, direction);
+    			return Line(ref points, ref direction);
     		}
 
     		else {
@@ -617,8 +857,9 @@ public class PrismManager : MonoBehaviour
 
     	return false;
     }
-    bool Tetrahedron (List<Vector3> points,	Vector3 direction)
+    bool Tetrahedron (ref List<Vector3> points,	ref Vector3 direction)
     {
+
     	Vector3 a = points[0];
     	Vector3 b = points[1];
     	Vector3 c = points[2];
@@ -639,7 +880,7 @@ public class PrismManager : MonoBehaviour
         temp.Add(b);
         temp.Add(c);
         points = temp;
-    		return Triangle(points, direction);
+    		return Triangle(ref points, ref direction);
     	}
 
     	if (SameDirection(acd, ao)) {
@@ -648,7 +889,7 @@ public class PrismManager : MonoBehaviour
         temp.Add(c);
         temp.Add(d);
         points = temp;
-    		return Triangle(points , direction);
+    		return Triangle(ref points , ref direction);
     	}
 
     	if (SameDirection(adb, ao)) {
@@ -656,14 +897,92 @@ public class PrismManager : MonoBehaviour
         temp.Add(a);
         temp.Add(d);
         temp.Add(b);
-    		return Triangle(points, direction);
+    		return Triangle(ref points, ref direction);
     	}
 
     	return true;
     }
+    bool NextSimplex2D( ref List<Vector3> points,	ref Vector3 direction){
+    	switch (points.Count()) {
+    		case 2: return Line2D       (ref points, ref direction);
+    		case 3: return Triangle2D   (ref points, ref direction);
+    	}
+    	return false;
+    }
+    bool Line2D(ref List<Vector3> points,	ref Vector3 direction){
+    	Vector3 a = points[0];
+    	Vector3 b = points[1];
+
+    	Vector3 ab = b - a;
+    	Vector3 ao =   - a;
+
+    	if (SameDirection(ab, ao)) {
+
+    		//direction = ao;
+        //Debug.Log("AO IS "+ao+" AB IS "+ab+" BROKEN CROSS PRODUCT IS + "+ cross(cross(ab,ao),ab));
+        direction = cross(cross(ab,ao),ab);
+    	}
+    	else {
+        List<Vector3> temp= new List<Vector3>();
+        temp.Add(a);
+    		points = temp;
+    		direction = ao;
+    	}
+    	return false;
+    }
+    bool Triangle2D(ref List<Vector3> points,	ref Vector3 direction){
+      Vector3 a = points[0];
+    	Vector3 b = points[1];
+    	Vector3 c = points[2];
+
+    	Vector3 ab = b - a;
+    	Vector3 ac = c - a;
+    	Vector3 ao =   - a;
+
+    	Vector3 abc = cross(ab,ac);
+
+    	if (SameDirection(cross(abc,ac),ao)) {
+      //if (SameDirection(new Vector3(ac.z , 0 , -ac.x),ao)) {
+    		if (SameDirection(ac, ao)) {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(c);
+      		points = temp;
+    			direction = cross(cross(ac,ao),ac);
+          //direction=new Vector3(-ac.z, 0 , ac.x);
+          //direction=ac;
+    		}
+
+    		else {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(b);
+      		points = temp;
+    			return Line2D(ref points , ref direction);
+    		}
+    	}
+
+    	else {
+        if (SameDirection(cross(ab,abc),ao)) {
+    		//if (SameDirection(new Vector3(-ab.z, 0, ab.x), ao)) {
+          List<Vector3> temp= new List<Vector3>();
+          temp.Add(a);
+          temp.Add(b);
+      		points = temp;
+    			return Line2D(ref points, ref direction);
+    		}
+
+    		else {
+    			return true;
+    		}
+    	}
+
+    	return false;
+    }
 
     private Vector3[] MKDiff(Prism prismA, Prism prismB)
     {
+      if (maxPrismScaleY==0){
         Vector3[] result = new Vector3[prismA.points.Length * prismB.points.Length];
         int k = 0;
         for (int i = 0; i < prismA.points.Length; i++)
@@ -672,14 +991,34 @@ public class PrismManager : MonoBehaviour
             {
                 Vector3 point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y - prismB.points[j].y, prismA.points[i].z - prismB.points[j].z);
                 result[k] = point;
-                //Debug.Log("kth point "+k+ " point is "+point);
                 k++;
             }
         }
-        /*for (int i=0; i<result.Length; i++){
-          Debug.DrawLine(result[i], result[(i + 1) % result.Length] , Color.yellow);
-        }*/
         return result;
+      } else {
+        Vector3[] result = new Vector3[4*prismA.points.Length * prismB.points.Length];
+        int k = 0;
+        for (int i = 0; i < prismA.points.Length; i++)
+        {
+            for (int j = 0; j < prismB.points.Length; j++)
+            {
+                Vector3 point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y+prismA.height / 2 * Math.Abs(prismA.transform.localScale.y) - prismB.points[j].y+prismB.height / 2 * Math.Abs(prismB.transform.localScale.y), prismA.points[i].z - prismB.points[j].z);
+                result[k] = point;
+                k++;
+                point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y-prismA.height / 2 * Math.Abs(prismA.transform.localScale.y) - prismB.points[j].y+prismB.height / 2 * Math.Abs(prismB.transform.localScale.y), prismA.points[i].z - prismB.points[j].z);
+                result[k] = point;
+                k++;
+                point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y+prismA.height / 2 * Math.Abs(prismA.transform.localScale.y) - prismB.points[j].y-prismB.height / 2 * Math.Abs(prismB.transform.localScale.y), prismA.points[i].z - prismB.points[j].z);
+                result[k] = point;
+                k++;
+                point = new Vector3(prismA.points[i].x - prismB.points[j].x, prismA.points[i].y-prismA.height / 2 * Math.Abs(prismA.transform.localScale.y) - prismB.points[j].y-prismB.height / 2 * Math.Abs(prismB.transform.localScale.y), prismA.points[i].z - prismB.points[j].z);
+                result[k] = point;
+                k++;
+            }
+        }
+        return result;
+      }
+
     }
 
 
@@ -687,7 +1026,6 @@ public class PrismManager : MonoBehaviour
     private bool DoesSimplexContainOrigin(List<Vector3> Simplex)
     {
         Vector3 origin = new Vector3(0f, 0f, 0f);
-
         return Simplex.Contains(origin);
     }
 
@@ -814,7 +1152,7 @@ public class PrismManager : MonoBehaviour
     {
         var prismObjA = collision.a.prismObject;
         var prismObjB = collision.b.prismObject;
-        Debug.Log(collision.penetrationDepthVectorAB);
+        //Debug.Log(collision.penetrationDepthVectorAB);
         var pushA = -collision.penetrationDepthVectorAB / 2;
         var pushB = collision.penetrationDepthVectorAB / 2;
 
@@ -915,6 +1253,136 @@ public class PrismManager : MonoBehaviour
             this.a = a;
             this.b = b;
 
+        }
+    }
+    private class KDTree
+    {
+        public Vector3 location;
+        public KDTree leftChild;
+        public KDTree rightChild;
+
+        public KDTree(List<Vector3> points, int depth){
+            List <Vector3> temp = points;
+            int axis = depth%3;
+            if(points.Count == 0){
+                return;
+            }
+            sortVector(temp, 0, temp.Count-1, axis);
+            int median = temp.Count/2;
+            this.location = temp[median];
+            //Debug.Log("Location " + temp[median]);
+            for(int i = 0; i < temp.Count; i++){
+                //Debug.Log("Adding " + temp[i]);
+            }
+            List <Vector3> left = new List <Vector3> ();
+            List <Vector3> right = new List <Vector3> ();
+            splitList(temp, left, right);
+            for(int i = 0; i < left.Count; i++){
+                //Debug.Log("Adding Left" + left[i]);
+            }
+            for(int i = 0; i < right.Count; i++){
+                //Debug.Log("Adding Right" + right[i]);
+            }
+            if(left.Count > 0){
+                this.leftChild = new KDTree(left, depth+1);
+            }
+            if(right.Count > 0){
+                this.rightChild = new KDTree(right, depth+1);
+            }
+
+        }
+
+        public void splitList(List<Vector3> points, List<Vector3> left, List<Vector3> right){
+            int median = points.Count/2;
+            for(int i = 0; i < median; i++){
+                left.Add(points[i]);
+            }
+            for(int i = median+1; i < points.Count; i++){
+                right.Add(points[i]);
+            }
+        }
+
+        public void mergeVector(List<Vector3> p, int l, int m, int r, int dim){
+            int n1 = m - l + 1;
+            int n2 = r - m;
+            // Create temp arrays
+            Vector3[] L = new Vector3[n1];
+            Vector3[] R = new Vector3[n2];
+            int i, j;
+
+            // Copy data to temp arrays
+            for (i = 0; i < n1; ++i)
+                L[i] =  p[l + i];
+            for (j = 0; j < n2; ++j)
+                R[j] = p[m + 1 + j];
+
+            i = 0;
+            j = 0;
+
+            int k = l;
+            while (i < n1 && j < n2) {
+                if(dim == 0){
+                    if (L[i].x<= R[j].x) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+                else if (dim == 1){
+                    if (L[i].y<= R[j].y) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+                else if (dim == 2){
+                    if (L[i].z<= R[j].z) {
+                        p[k] = L[i];
+                        i++;
+                    }
+                    else {
+                        p[k] = R[j];
+                        j++;
+                    }
+                    k++;
+                }
+            }
+
+            while (i < n1) {
+                p[k] = L[i];
+                i++;
+                k++;
+            }
+
+            while (j < n2) {
+                p[k] = R[j];
+                j++;
+                k++;
+            }
+        }
+
+        public void sortVector(List<Vector3> p, int l, int r, int dim){
+            if (l < r) {
+                // Find the middle
+                // point
+                int m = l+ (r-l)/2;
+
+                // Sort first and
+                // second halves
+                sortVector(p, l, m, dim);
+                sortVector(p, m + 1, r, dim);
+
+                // Merge the sorted halves
+                mergeVector(p, l, m, r, dim);
+            }
         }
     }
     #endregion
