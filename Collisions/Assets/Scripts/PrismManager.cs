@@ -221,7 +221,7 @@ public class PrismManager : MonoBehaviour
    {
        Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
        List <Vector3> points = new List <Vector3>();
-       /*for (int i = 0; i < prisms.Count; i++) {
+       for (int i = 0; i < prisms.Count; i++) {
            float[] temp=minMaxXY(prisms[i]);
            Vector3 min1 = new Vector3(temp[0], temp[1], temp[2]);
            Vector3 max1 = new Vector3(temp[3], temp[4], temp[5]);
@@ -248,21 +248,21 @@ public class PrismManager : MonoBehaviour
            points.Add(max3);
            points.Add(min4);
            points.Add(max4);
-       }*/
-       for (int i = 0; i < prisms.Count; i++) {
+       }
+       /*for (int i = 0; i < prisms.Count; i++) {
             float[] temp=minMaxXY(prisms[i]);
-            Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
-            Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+            //Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
+            //Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
             Prism val=prisms[i];
             dict[min] = val;
             dict[max] = val;
-            points.Add(min);
-            points.Add(max);
+            //points.Add(min);
+            //points.Add(max);
             for(int j = 0; j < prisms[i].points.Length; j++){
                 points.Add(prisms[i].points[j]);
                 dict[prisms[i].points[j]] = prisms[i];
             }
-        }
+        }*/
       KDTree kd = new KDTree(points, 0);
       var collisions = new List <PrismCollision> ();
       var activeList = new List <Prism> ();
@@ -493,8 +493,8 @@ public class PrismManager : MonoBehaviour
     while (true){
         Vector3 new_depth_vector = FindClosestPointFromOrigin(expandingPolygon.ToArray());
         if (Vector3.Distance(depth_vector, new_depth_vector) < tolerance){
-            return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
-            //return new_depth_vector;
+            //return new_depth_vector*(1+UnityEngine.Random.value * 0.0001f);
+            return new_depth_vector;
         }
         depth_vector = new_depth_vector;
         Vector3 w = getSupportingPoint(MKDiffPoints, depth_vector);
