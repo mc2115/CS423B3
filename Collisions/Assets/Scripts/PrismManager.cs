@@ -231,14 +231,14 @@ public class PrismManager : MonoBehaviour
        Dictionary <Vector3, Prism> dict = new Dictionary <Vector3, Prism> ();
        List <Vector3> points = new List <Vector3>();
        for (int i = 0; i < prisms.Count; i++) {
-           /*float[] temp=minMaxXY(prisms[i]);
+           float[] temp=minMaxXY(prisms[i]);
            Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
            Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
            Prism val=prisms[i];
            dict[min] = val;
            dict[max] = val;
            points.Add(min);
-           points.Add(max);*/
+           points.Add(max);
            for(int j = 0; j < prisms[i].points.Length; j++){
                points.Add(prisms[i].points[j]);
                dict[prisms[i].points[j]] = prisms[i];
