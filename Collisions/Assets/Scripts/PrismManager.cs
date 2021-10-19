@@ -19,7 +19,7 @@ public class PrismManager : MonoBehaviour
     private GameObject prismParent;
     private Dictionary<Prism, bool> prismColliding = new Dictionary<Prism, bool>();
 
-    private const float UPDATE_RATE = 0.1f;
+    private const float UPDATE_RATE = 0.001f;
 
     #region Unity Functions
 
