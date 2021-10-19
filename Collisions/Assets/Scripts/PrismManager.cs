@@ -232,8 +232,8 @@ public class PrismManager : MonoBehaviour
        List <Vector3> points = new List <Vector3>();
        for (int i = 0; i < prisms.Count; i++) {
            float[] temp=minMaxXY(prisms[i]);
-           Vector3 min = new Vector3(temp[0], temp[2], temp[4]);
-           Vector3 max = new Vector3(temp[1], temp[3], temp[5]);
+           Vector3 min = new Vector3(temp[0], temp[1], temp[2]);
+           Vector3 max = new Vector3(temp[3], temp[4], temp[5]);
            Prism val=prisms[i];
            dict[min] = val;
            dict[max] = val;
