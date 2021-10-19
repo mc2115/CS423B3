@@ -828,6 +828,7 @@ public class PrismManager : MonoBehaviour
 
         public KDTree(List<Vector3> points, int depth){ 
             List <Vector3> temp = points;
+            //Instead of %3 check for maxYValue and if it exists %3 otherwise %2
             int axis = depth%3;
             if(points.Count == 0){
                 return;
